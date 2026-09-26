@@ -70,5 +70,5 @@ What they find (checked on 2026-09-26; use it in the quarterly review to confirm
 | `chunk-lint.mjs` | 1 chunk over 512 tokens, 3 under 20, 4 heading-only, 2 split code block chunks, 1 table without its header, 1 mid-list start, 1 cut sentence, 1 colon ending, 2 openings with "It", 2 outside references; 18 of 41 chunks without a title word |
 | `near-duplicates.mjs` | 2 exact duplicate groups, 1 near-duplicate cluster whose numbers differ (30 and 60 days), 1 boilerplate line in 4 documents |
 | `stale-claims.mjs` | 1 expired future claim, 1 expired offer, 1 old "as of" claim, 1 deprecated marker, 2 undated relative claims, 5 prices in undated documents, 2 old and 3 undated documents |
-| `conflict-candidates.mjs` | 4 pairs: retention 30 or 60 days, Pro price $10 or $12, two-factor authentication required or optional, refunds within 14 or 30 days |
+| `conflict-candidates.mjs` | 5 pairs on 4 topics: retention 30 or 60 days (two sentence pairs), Pro price $10 or $12, two-factor authentication required or optional, refunds within 14 or 30 days |
 | `question-coverage.mjs` | 1 question with no shared words (cancelling), 2 weak matches (Android app, free tier), 5 candidates; words the corpus never uses: cancel, subscription, android, linux, tier |

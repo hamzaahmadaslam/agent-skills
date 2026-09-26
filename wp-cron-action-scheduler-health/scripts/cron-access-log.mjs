@@ -29,7 +29,7 @@ const flag = (name) => args.includes(`--${name}`);
 
 if (files.length === 0 || flag("help")) {
   console.log("Usage: node cron-access-log.mjs <access log> [...] [--after=<ISO time>] [--since=<ISO time>] [--until=<ISO time>] [--json]");
-  process.exit(files.length === 0 ? 1 : 0);
+  process.exit(flag("help") ? 0 : 1);
 }
 
 const parseOption = (name, fallback) => {

@@ -5,7 +5,7 @@ license: MIT
 compatibility: "The helper scripts need Node.js 20 or later, no packages and no network. They read Markdown, plain text, HTML and JSONL chunk exports; export PDFs, Office files and wiki pages to text or JSONL with the pipeline's own extractor first. Word-based checks assume English. Optional: chunk-standalone for a model-based check of standalone chunks, which needs a TypeSafe API key and the owner's approval."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 

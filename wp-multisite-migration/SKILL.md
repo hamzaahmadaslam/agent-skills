@@ -2,9 +2,10 @@
 name: wp-multisite-migration
 description: Runbook for moving one site out of a WordPress multisite network into a standalone install, or importing a standalone WordPress site into a network as a subsite. Covers finding the blog_id and its wp_N_ tables, network users and wp_N_capabilities keys, uploads/sites/N paths, domain mapping (core since 4.5, or sunrise.php), serialized-safe WP-CLI search-replace, network-activated plugins and themes, multisite constants in wp-config.php, redirects, verification and rollback. Use when splitting a subsite off a network, consolidating standalone sites into a multisite, or checking a half-finished move. Read-only by default; every write step has a backup before it and a check after it.
 license: MIT
+compatibility: "Needs shell access with WP-CLI to every install involved or to staging copies of them, the MySQL or MariaDB client tools that wp db export, import and query call, and bash and awk for the helper scripts. Written against WordPress 7.1.2 and WP-CLI 2.12.0."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 

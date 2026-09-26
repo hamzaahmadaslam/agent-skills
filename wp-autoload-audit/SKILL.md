@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Needs shell access with WP-CLI to the site or a staging copy, the mysql or mariadb client that wp db query uses, and grep for the owner search. Written against WordPress 7.1.2 and WP-CLI 2.12.0 (entity-command 2.8.4, cache-command 2.2.0, db-command 2.1.3), with notes for entity-command 3.0.2 and for WordPress 6.4 to 7.1 in references/version-notes.md."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 
@@ -69,7 +69,7 @@ events inside the `cron` option (`wp-cron-action-scheduler-health`), or for a Wo
 | `autoload` value | Meaning | Loaded on every request |
 | --- | --- | --- |
 | `on` / `off` | Explicit choice (6.6 and later) | yes / no |
-| `yes` / `no` | Explicit choice written before 6.6, by SQL, or by `wp option set-autoload` | yes / no |
+| `yes` / `no` | Explicit choice written before 6.6, by SQL, or by `wp option set-autoload` with `yes` or `no` | yes / no |
 | `auto` | No choice made; WordPress decides | yes |
 | `auto-on` / `auto-off` | No choice made; a filter decided (by default `auto-off` means the value was over 150,000 bytes) | yes / no |
 
@@ -200,16 +200,16 @@ Autoloaded options audit: <site> (<date, UTC>)
 Environment: WordPress <v> (database <revision>), PHP <v>, WP-CLI <v>; multisite <yes: site id|no>;
              object cache <type|none>; loaded values <list after filters>; environment type <type>
 
-| Metric                                         | Before | After | Method                                |
-| ---------------------------------------------- | ------ | ----- | ------------------------------------- |
-| Loaded options / bytes                         |        |       | autoload-checks.sql, loaded total     |
-| Site Health "Autoloaded options"               |        |       | autoload-state.php                    |
-| Largest loaded option (name, bytes)            |        |       | autoload-checks.sql                   |
-| Loaded transients / bytes                      |        |       | autoload-checks.sql                   |
-| Autoload query / unserialize time (ms)         |        |       | autoload-state.php, same server       |
-| Memory for the loaded set (KiB)                |        |       | autoload-state.php                    |
-| alloptions entry: serialized bytes, stale names|        |       | autoload-state.php (cached sites)     |
-| Server response time, median of 10 (ms)        |        |       | curl on staging, page cache bypassed  |
+| Metric                                          | Before | After | Method                                |
+| ----------------------------------------------- | ------ | ----- | ------------------------------------- |
+| Loaded options / bytes                          |        |       | autoload-checks.sql, loaded total     |
+| Site Health "Autoloaded options"                |        |       | autoload-state.php                    |
+| Largest loaded option (name, bytes)             |        |       | autoload-checks.sql                   |
+| Loaded transients / bytes                       |        |       | autoload-checks.sql                   |
+| Autoload query / unserialize time (ms)          |        |       | autoload-state.php, same server       |
+| Memory for the loaded set (KiB)                 |        |       | autoload-state.php                    |
+| alloptions entry: serialized bytes, stale names |        |       | autoload-state.php (cached sites)     |
+| Server response time, median of 10 (ms)         |        |       | curl on staging, page cache bypassed  |
 
 Findings (largest measured cost first):
 - <option>: <bytes, autoload value> -> owner <core|plugin|theme|mu-plugin|none> (<exact|prefix|none>) -> read by

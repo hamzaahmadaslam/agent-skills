@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Needs shell access with WP-CLI to the site or a staging copy, the mysql client that `wp db query` uses, and Node.js 20 or later for the log summaries. Written against WordPress 7.1.2, WP-CLI 2.12.0 (its bundled cron-command 2.3.2; 2.3.5 to 3.0.0 checked), Action Scheduler 4.0.0 (inside WooCommerce 11.1.2) and 4.2.0, and WooCommerce 11.1.2; references/version-notes.md lists what differs."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 

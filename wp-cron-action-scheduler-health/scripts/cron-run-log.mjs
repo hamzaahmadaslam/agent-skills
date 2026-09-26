@@ -30,7 +30,7 @@ const flag = (name) => args.includes(`--${name}`);
 
 if (files.length === 0 || flag("help")) {
   console.log("Usage: node cron-run-log.mjs <log file> [...] [--interval=60] [--since=<ISO time>] [--hours=48] [--json] [--show-messages]");
-  process.exit(files.length === 0 ? 1 : 0);
+  process.exit(flag("help") ? 0 : 1);
 }
 
 const interval = Number(option("interval", "60"));

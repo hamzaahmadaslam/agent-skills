@@ -88,14 +88,14 @@ if [ ! -r "$SQL_FILE" ]; then
 fi
 
 PREFIX="$("${WP[@]}" db prefix 2>/dev/null | tr -d '\r')"
-if ! printf '%s' "$PREFIX" | grep -Eq '^[A-Za-z0-9_]+$'; then
+if ! [[ "$PREFIX" =~ ^[A-Za-z0-9_]+$ ]]; then
 	printf 'Unexpected table prefix "%s"; skipping SQL.\n' "$PREFIX"
 	exit 0
 fi
 
 # The values WordPress loads, after filters (WordPress 6.6 and later); 'yes' only on older releases.
 LOADED="$("${WP[@]}" eval 'echo implode( ",", function_exists( "wp_autoload_values_to_autoload" ) ? wp_autoload_values_to_autoload() : array( "yes" ) );' 2>/dev/null | tr -d '\r')"
-if ! printf '%s' "$LOADED" | grep -Eq '^[a-z-]+(,[a-z-]+)*$'; then
+if ! [[ "$LOADED" =~ ^[a-z-]+(,[a-z-]+)*$ ]]; then
 	printf 'Could not read the loaded autoload values (got "%s"); using the default list %s.\n' "$LOADED" "$DEFAULT_LOADED"
 	LOADED="$DEFAULT_LOADED"
 fi

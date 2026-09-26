@@ -29,6 +29,8 @@ CONTENT_DIR=""
 MIN_PREFIX=4
 READ_STDIN=0
 NAMES=()
+# The characters a searchable option name may hold (kept in a variable: the pattern starts with a bracket).
+NAME_PATTERN='^[][A-Za-z0-9_.:@-]+$'
 
 usage() {
 	sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -83,7 +85,7 @@ if [ ! -d "$CONTENT_DIR" ]; then
 	printf 'Content folder not found: %s (use --content-dir)\n' "$CONTENT_DIR" >&2
 	exit 2
 fi
-if ! printf '%s' "$MIN_PREFIX" | grep -Eq '^[0-9]+$'; then
+if ! [[ "$MIN_PREFIX" =~ ^[0-9]+$ ]]; then
 	printf 'Invalid --min-prefix: %s\n' "$MIN_PREFIX" >&2
 	exit 2
 fi
@@ -177,7 +179,7 @@ report_name() {
 	local name="$1" hint="" subject="$1" results="" core_results="" prefix count owners
 
 	printf '\n== %s\n' "$name"
-	if ! printf '%s' "$name" | grep -Eq '^[][A-Za-z0-9_.:@-]+$'; then
+	if ! [[ "$name" =~ $NAME_PATTERN ]]; then
 		printf 'skipped: the name has characters this helper does not search for\n'
 		return
 	fi

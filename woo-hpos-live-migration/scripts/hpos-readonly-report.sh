@@ -95,13 +95,13 @@ if [ ! -r "$SQL_FILE" ]; then
 fi
 
 PREFIX="$("${WP[@]}" db prefix 2>/dev/null)"
-if ! printf '%s' "$PREFIX" | grep -Eq '^[A-Za-z0-9_]+$'; then
+if ! [[ "$PREFIX" =~ ^[A-Za-z0-9_]+$ ]]; then
 	printf 'Unexpected table prefix "%s"; skipping SQL.\n' "$PREFIX"
 	exit 0
 fi
 
 ORDER_TYPES_RAW="${ORDER_TYPES_RAW:-shop_order,shop_order_refund}"
-if ! printf '%s' "$ORDER_TYPES_RAW" | grep -Eq '^[A-Za-z0-9_,-]+$'; then
+if ! [[ "$ORDER_TYPES_RAW" =~ ^[A-Za-z0-9_,-]+$ ]]; then
 	printf 'Unexpected order types "%s"; using shop_order,shop_order_refund.\n' "$ORDER_TYPES_RAW"
 	ORDER_TYPES_RAW="shop_order,shop_order_refund"
 fi

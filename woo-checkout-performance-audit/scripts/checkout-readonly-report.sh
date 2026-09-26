@@ -92,7 +92,7 @@ fi
 PREFIX="$("${WP[@]}" db prefix 2>/dev/null)"
 BASE_PREFIX="$("${WP[@]}" eval 'global $wpdb; echo $wpdb->base_prefix;' 2>/dev/null)"
 for value in "$PREFIX" "$BASE_PREFIX"; do
-	if ! printf '%s' "$value" | grep -Eq '^[A-Za-z0-9_]+$'; then
+	if ! [[ "$value" =~ ^[A-Za-z0-9_]+$ ]]; then
 		printf 'Unexpected table prefix "%s"; skipping SQL.\n' "$value"
 		exit 0
 	fi

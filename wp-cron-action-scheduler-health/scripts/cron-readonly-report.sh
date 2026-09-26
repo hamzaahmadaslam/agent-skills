@@ -114,7 +114,7 @@ if [ ! -r "$SQL_FILE" ]; then
 fi
 
 PREFIX="$("${WP[@]}" db prefix 2>/dev/null)"
-if ! printf '%s' "$PREFIX" | grep -Eq '^[A-Za-z0-9_]+$'; then
+if ! [[ "$PREFIX" =~ ^[A-Za-z0-9_]+$ ]]; then
 	printf 'Unexpected table prefix "%s"; skipping SQL.\n' "$PREFIX"
 	exit 0
 fi

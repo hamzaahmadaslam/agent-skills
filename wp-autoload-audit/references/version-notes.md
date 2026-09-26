@@ -29,7 +29,7 @@ apply the rows at or below it. Current releases when this skill was last verifie
 | entity-command 2.8.4 (WP-CLI 2.12.0) | `option list --autoload=on` matches `on` and `yes` without parentheses around them; `set-autoload` accepts `on`, `off`, `yes`, `no` | [Option_Command.php at 2.8.4](https://github.com/wp-cli/entity-command/blob/v2.8.4/src/Option_Command.php#L275-L284) |
 | entity-command 2.8.5, 2.8.6 | Same `--autoload` filter | [2.8.6](https://github.com/wp-cli/entity-command/blob/v2.8.6/src/Option_Command.php) |
 | entity-command 3.0.0 (2026-08-04) | Parentheses added to the `--autoload` and `--transients` conditions; still only `on` and `yes` | [3.0.0](https://github.com/wp-cli/entity-command/blob/v3.0.0/src/Option_Command.php) |
-| doctor-command 3.0.0 | `autoload-options-size` warns above 900 KB, measured with `option list --autoload=on` | [Autoload_Options_Size.php](https://github.com/wp-cli/doctor-command/blob/v3.0.0/src/Check/Autoload_Options_Size.php) |
+| doctor-command 2.3.1, 3.0.0 | `autoload-options-size` warns above 900 KB, measured with `option list --autoload=on`; 2.3.1 needs WP-CLI 2.12, 3.0.0 needs WP-CLI 3 | [Autoload_Options_Size.php](https://github.com/wp-cli/doctor-command/blob/v3.0.0/src/Check/Autoload_Options_Size.php), [composer.json at 3.0.0](https://github.com/wp-cli/doctor-command/blob/v3.0.0/composer.json) |
 
 ## What this means for the audit
 

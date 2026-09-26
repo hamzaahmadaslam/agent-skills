@@ -55,9 +55,16 @@ done
 if [ "$READ_STDIN" = "1" ]; then
 	while IFS= read -r line || [ -n "$line" ]; do
 		line="${line%$'\r'}"
+		# A row of the mysql client's table format ("| name | size |"): keep its first cell.
+		case "$line" in
+			"|"*)
+				line="${line#|}"
+				line="${line%%|*}"
+				;;
+		esac
 		first="$(printf '%s\n' "$line" | awk '{print $1}')"
 		case "$first" in
-			"" | option_name | "+"* | "|"*) ;;
+			"" | option_name | "+"*) ;;
 			*) NAMES+=("$first") ;;
 		esac
 	done
@@ -205,6 +212,16 @@ report_name() {
 			;;
 	esac
 	[ -n "$hint" ] && printf 'note: %s\n' "$hint"
+
+	# Theme mods belong to their theme even when its code never spells out its own folder name.
+	case "$name" in
+		theme_mods_*)
+			if [ -d "$CONTENT_DIR/themes/$subject" ]; then
+				printf 'verdict: theme %s (the theme mods of an installed theme)\n' "$subject"
+				return
+			fi
+			;;
+	esac
 
 	# 1. Core, exact.
 	core_results="$(search exact "$subject" "${CORE_DIRS[@]}")"

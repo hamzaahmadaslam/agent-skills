@@ -45,9 +45,10 @@ events inside the `cron` option (`wp-cron-action-scheduler-health`), or for a Wo
 
 ## Safety rules
 
-1. Read-only by default. The helpers in `scripts/`, `wp option list`, `wp option get-autoload`, `wp cache type` and
-   SELECT queries need no approval. Anything else changes the site: before it, state the step, its export, its check
-   and its undo, and wait for the owner's approval of that step. One approval covers one step.
+1. Read-only by default. The helpers in `scripts/`, `wp option list --fields=option_name,autoload,size_bytes`
+   (without `--fields` it prints every value), `wp option get-autoload`, `wp cache type` and SELECT queries need no
+   approval. Anything else changes the site: before it, state the step, its export, its check and its undo, and wait
+   for the owner's approval of that step. One approval covers one step.
 2. Staging first for every kind of change and for its undo (`references/changes-and-rollback.md`), then production
    at a quiet hour.
 3. Export first: the whole options table for disaster recovery, and the rows you are about to change as the undo. An

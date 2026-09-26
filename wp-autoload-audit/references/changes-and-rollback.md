@@ -257,5 +257,6 @@ foreach ( array( 'opt_a', 'opt_b' ) as $autoload_audit_option ) {
 ```
 
 The path is logged without its query string. Browse the site on staging as a visitor and as an administrator, run
-cron once (`wp cron event run --due-now`), then count the lines per option and kind with `grep 'autoload-audit read'`.
+cron once (`wp cron event run --due-now`; it runs the due work, so first make sure the staging copy cannot send
+email, deliver webhooks or charge payments), then count the lines per option and kind with `grep 'autoload-audit read'`.
 Undo: delete the file, then remove the logged lines if the log is kept.

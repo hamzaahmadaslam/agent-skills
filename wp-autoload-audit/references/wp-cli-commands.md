@@ -67,7 +67,7 @@ Each one needs the export, check and undo in `changes-and-rollback.md`, and the 
 
 ## WP-CLI packages that are not bundled
 
-`wp doctor` (doctor-command 3.0.0) has an `autoload-options-size` check that relies on
-`wp option list --autoload=on`, so it undercounts on WordPress 6.6 and later (`measuring.md`)
+`wp doctor` (doctor-command 2.3.1 for WP-CLI 2.12, 3.0.0 for WP-CLI 3) has an `autoload-options-size` check that
+relies on `wp option list --autoload=on`, so it undercounts on WordPress 6.6 and later (`measuring.md`)
 ([doctor-command](https://github.com/wp-cli/doctor-command)). Installing a package changes the WP-CLI setup on that
 server, not the site; ask before doing it.

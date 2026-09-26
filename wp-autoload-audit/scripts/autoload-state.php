@@ -249,8 +249,8 @@ $aa_line( 'Autoload query time in this process', number_format( ( $aa_time_query
 $aa_line( 'Unserializing every loaded value', number_format( ( $aa_time_done - $aa_time_query ) * 1000, 1 ) . ' ms' );
 $aa_line( 'Memory for rows and unserialized values', number_format( $aa_memory_used / 1024, 1 ) . ' KiB' );
 if ( $aa_serialized_size >= 900000 ) {
-	echo "Note: the serialized array is near or over 1,000,000 bytes, Memcached's default item size and VIP's limit\n";
-	echo "      (references/object-cache.md). The drop-in's own serializer and compression change the stored size.\n";
+	echo "Note: the serialized array is near or over 1 MB, Memcached's default item size (1,048,576 bytes) and VIP's\n";
+	echo "      limit (references/object-cache.md). The drop-in's own serializer and compression change the stored size.\n";
 }
 
 // The cached alloptions entry compared with the database.

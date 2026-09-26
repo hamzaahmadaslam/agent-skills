@@ -52,7 +52,7 @@ in the database ([Autoloaded options](https://docs.wpvip.com/wordpress-on-vip/au
 
 ## Size limits for the alloptions entry
 
-- Memcached stores items up to 1 MB by default (`-I` or `--max-item-size`, default `1m`)
+- Memcached stores items up to 1 MB (1,048,576 bytes) by default (`-I` or `--max-item-size`, default `1m`)
   ([memcached.1 at 1.6.45](https://github.com/memcached/memcached/blob/1.6.45/doc/memcached.1#L141-L143),
   [memcached.c L240](https://github.com/memcached/memcached/blob/1.6.45/memcached.c#L240)). Whether a larger
   `alloptions` array fits depends on the drop-in (serializer, compression) and the server setting.
@@ -64,8 +64,8 @@ in the database ([Autoloaded options](https://docs.wpvip.com/wordpress-on-vip/au
   request finds no key, and the autoload query runs again, on every request
   ([option.php L619-L650](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/option.php#L619-L650)).
   How the failure is reported depends on the drop-in; check its log or statistics.
-- The state helper prints `strlen( serialize( $alloptions ) )` as an estimate of the stored size and flags values
-  near 1,000,000 bytes. Other backends have their own limits; read the drop-in's documentation.
+- The state helper prints `strlen( serialize( $alloptions ) )` as an estimate of the stored size and adds a note from
+  900,000 bytes, near the 1 MB limits above. Other backends have their own limits; read the drop-in's documentation.
 
 ## Frequent writes and lost updates
 

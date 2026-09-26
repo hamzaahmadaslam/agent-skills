@@ -1,0 +1,5 @@
+# Hosts that refuse automated link checkers but open normally in a browser. Check these by hand in the quarterly
+# review (MAINTENANCE.md) instead.
+
+# dev.mysql.com answers the checker with 403.
+^https://dev\.mysql\.com/

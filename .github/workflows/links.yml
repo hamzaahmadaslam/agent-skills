@@ -1,0 +1,30 @@
+name: Links
+
+on:
+  schedule:
+    # 06:00 UTC on the first day of every month.
+    - cron: "0 6 1 * *"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Checks every URL and relative link in the Markdown files. Links inside code blocks are skipped.
+      # 429 (rate limited) counts as reachable so a busy host does not fail the run.
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-retries 3
+            --retry-wait-time 10
+            --accept '100..=103,200..=299,429'
+            './**/*.md'
+          fail: true

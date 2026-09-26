@@ -1,0 +1,1 @@
+Summarize the open issues labelled bug in the example-org/website repository and post the summary as a comment on issue 12. Do not change anything else in the repository.

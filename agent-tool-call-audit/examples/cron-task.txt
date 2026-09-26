@@ -1,0 +1,1 @@
+Find out why the nightly report job failed on 2026-09-19 and fix its cron schedule on the staging server staging-report.example.com. Do not touch production.

@@ -1,0 +1,36 @@
+{
+  "tools": [
+    {
+      "name": "get_ticket",
+      "description": "Get a support ticket with its messages.",
+      "inputSchema": { "type": "object", "properties": { "ticket_id": { "type": "string" } }, "required": ["ticket_id"] },
+      "annotations": { "readOnlyHint": true, "openWorldHint": false }
+    },
+    {
+      "name": "lookup_customer",
+      "description": "Get a customer's profile and contact details.",
+      "inputSchema": { "type": "object", "properties": { "customer_id": { "type": "string" } }, "required": ["customer_id"] },
+      "annotations": { "readOnlyHint": true, "openWorldHint": false }
+    },
+    {
+      "name": "send_email",
+      "description": "Send an email from the support mailbox.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "to": { "type": "string" }, "subject": { "type": "string" }, "body": { "type": "string" } },
+        "required": ["to", "subject", "body"]
+      },
+      "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": true }
+    },
+    {
+      "name": "refund_order",
+      "description": "Refund an order, fully or in part.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "order_id": { "type": "string" }, "amount": { "type": "number" } },
+        "required": ["order_id"]
+      },
+      "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": true }
+    }
+  ]
+}

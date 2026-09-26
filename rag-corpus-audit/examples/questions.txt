@@ -1,0 +1,9 @@
+# Synthetic question log written for this skill: how often each question was asked, a tab, then the question.
+14	How do I restore a deleted file?
+9	What does the Pro plan cost?
+7	Can I get a refund after 20 days?
+5	How do I cancel my subscription?
+4	Is there an Android app?
+3	Does Acme Sync work on Linux?
+2	How much storage does the free tier include?
+2	Can admins turn off two-factor authentication?

@@ -65,7 +65,12 @@ Since WordPress 6.9, inline scripts end with a `//# sourceURL=<handle>-js-extra`
 `-js-translations`) comment and inline styles with `/*# sourceURL=<handle>-inline-css */`, which developer tools use
 as the script's name (Trac ticket 63887, [pull request 9628](https://github.com/WordPress/wordpress-develop/pull/9628); present in the 6.9
 branch, not in 6.8: [class-wp-scripts.php at 6.9](https://github.com/WordPress/wordpress-develop/blob/6.9/src/wp-includes/class-wp-scripts.php)).
-`scripts/wp-owner.mjs` reads such names as `inline:<handle>`.
+`scripts/wp-owner.mjs` reads such names as `inline:<handle>`. Two exceptions: a stylesheet WordPress inlined, when it
+is the handle's only inline CSS, is named by its original file URL, which maps to its plugin or theme
+([class-wp-styles.php L311-L327](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-styles.php#L311-L327));
+and where scripts are concatenated (admin and login screens only), `-js-extra` data carries no name
+([class-wp-scripts.php L229-L241](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-scripts.php#L229-L241);
+[script-loader.php L2478-L2483](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/script-loader.php#L2478-L2483)).
 
 Find the code that registers a handle (read-only):
 

@@ -153,10 +153,11 @@ starts with the first resources. Undo: delete the snippet file or revert the tem
   and a dependency keeps its own group ([class-wp-scripts.php L693-L703](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-scripts.php#L693-L703)).
   So when anything enqueued before `wp_head` depends on `jquery`, both print in `<head>` as blocking scripts, even if
   the dependent script itself prints in the footer.
-- A script registered with `strategy` gets `defer` or `async` only if its dependency tree allows it; WordPress never
-  applies a stricter strategy than asked, keeps the intended one in `data-wp-strategy`, and treats a script with an
-  inline `after` script as blocking ([Make WordPress Core: 6.3 strategies](https://make.wordpress.org/core/2023/07/14/registering-scripts-with-async-and-defer-attributes-in-wordpress-6-3/);
-  [class-wp-scripts.php L1115-L1118](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-scripts.php#L1115-L1118)).
+- A script registered with `strategy` gets `defer` or `async` only if its dependency tree allows it; otherwise
+  WordPress falls back to a more conservative strategy, never a less conservative one (`async` can become `defer` or
+  blocking, `defer` can become blocking, never `async`), keeps the intended one in `data-wp-strategy`, and treats a
+  script with an inline `after` script as blocking ([Make WordPress Core: 6.3 strategies](https://make.wordpress.org/core/2023/07/14/registering-scripts-with-async-and-defer-attributes-in-wordpress-6-3/);
+  [class-wp-scripts.php L1044-L1066, L1115-L1123](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-scripts.php#L1044-L1123)).
 
 Check: `scripts/scan-html.mjs` lists head stylesheets and blocking scripts by owner and flags downgraded strategies;
 the Render-blocking requests insight shows which of them delayed the first paint in a trace.

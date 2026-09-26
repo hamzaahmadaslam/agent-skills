@@ -7,7 +7,8 @@
 // It reads the files you name and prints a report. It writes no files and makes no network requests. Node 20 or
 // later, no dependencies. Input: one JSON object per line, or one JSON array of objects per line (a batch sent by
 // one page view). The same metric instance can arrive more than once (CLS and INP are reported again when the page is
-// hidden); records are de-duplicated by name and id, keeping the highest value.
+// hidden); records are de-duplicated by name and id, keeping the last INP report (INP can fall as interactions add
+// up) and the highest value of the other metrics.
 //
 // Usage:
 //   node scripts/rum-summary.mjs beacons.ndjson --site=https://www.example.com
@@ -125,7 +126,8 @@ export function readRecords(texts) {
       }
     }
   }
-  // De-duplicate repeated reports of one metric instance, keeping the highest value.
+  // De-duplicate repeated reports of one metric instance. CLS and LCP only grow, so their highest value is the final
+  // one. INP takes the longest interaction but skips one per 50 interactions, so it can fall: the last report wins.
   const byId = new Map();
   const anonymous = [];
   for (const r of records) {
@@ -135,7 +137,7 @@ export function readRecords(texts) {
     }
     const key = `${r.name}|${r.id}`;
     const seen = byId.get(key);
-    if (!seen || r.value > seen.value) byId.set(key, r);
+    if (!seen || r.name === "INP" || r.value > seen.value) byId.set(key, r);
   }
   return { records: [...byId.values(), ...anonymous], skipped, duplicates: records.length - byId.size - anonymous.length };
 }

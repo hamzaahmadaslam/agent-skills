@@ -72,7 +72,8 @@ export function classifyUrl(raw, options = {}) {
   // WordPress 6.9+ names inline scripts and styles with a sourceURL comment such as "foo-js-after".
   const inline = value.match(INLINE_NAME);
   if (inline && !value.includes("/") && !value.includes(":")) {
-    return result("inline", inline[1], "", "", `inline ${inline[2]} code attached to the handle "${inline[1]}"`);
+    const kind = inline[2] === "inline-css" ? "inline style" : `inline script (${inline[2]})`;
+    return result("inline", inline[1], "", "", `${kind} attached to the handle "${inline[1]}"`);
   }
 
   let url;
@@ -197,7 +198,8 @@ function main() {
     lines = readLines(opts);
   } catch (error) {
     console.error(`wp-owner: ${error.message}`);
-    process.exit(error.code === "ENOENT" || error.code === "EACCES" ? 2 : 1);
+    // File system errors (missing file, no permission, a folder) mean the input is not readable.
+    process.exit(error.code ? 2 : 1);
   }
   const entries = [];
   for (const line of lines) {

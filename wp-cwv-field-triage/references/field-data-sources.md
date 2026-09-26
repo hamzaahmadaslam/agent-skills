@@ -226,5 +226,6 @@ From [web.dev: CrUX and RUM differences](https://web.dev/articles/crux-and-rum-d
   in and may be sampled.
 - CrUX counts back/forward cache restores as page views and includes iframe content; web APIs see neither without
   extra work. Background-tab loads are left out of CrUX.
-- Compare like with like: filter RUM to Chrome, one form factor, the 75th percentile, over 28 days
+- Compare like with like: filter RUM to Chromium browsers (the closest the beacon gets to Chrome; Edge and other
+  Chromium browsers stay in), one form factor, the 75th percentile, over 28 days
   (`scripts/rum-summary.mjs --chromium-only --device=mobile`).

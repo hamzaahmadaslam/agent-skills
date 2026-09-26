@@ -55,8 +55,9 @@ skill).
 2. Staging first. Never deactivate plugins or change settings on production to test a guess.
 3. Keys stay with the user. Never ask for the CrUX API key, print it, or write it to a file; commands read
    `$CRUX_API_KEY` from the user's own shell. Never run `wp config list` (it prints database credentials).
-4. Real-user collection sends no personal data, follows the site's consent setup, is sampled, and is removed (or kept
-   on purpose) when the investigation ends.
+4. Real-user collection sends no user IDs, cookies, query strings or form contents, leaves out pages whose path names
+   a person or an order, follows the site's consent setup, is sampled, and is removed (or kept on purpose) when the
+   investigation ends.
 5. Evidence before blame. Never name a component as the cause from code reading or a single lab run. Label every
    owner Confirmed, Likely or Hypothesis (`references/lab-confirmation.md`).
 6. Compare like with like: the 75th percentile, one device type, the same page or URL group, 28-day windows. Say when
@@ -130,8 +131,9 @@ site, say so and go to step 3. Sources, commands and caveats: `references/field-
   node scripts/rum-summary.mjs beacons.ndjson --site=https://www.example.com --metric=INP --device=mobile --chromium-only
   ```
 
-- Filter to Chromium and one device type when comparing with CrUX, which is Chrome only. RUM cannot see inside
-  iframes, and Long Animation Frame script attribution exists in Chromium only.
+- Filter to Chromium and one device type when comparing with CrUX, which is Chrome only; the filter keeps Edge and
+  other Chromium browsers too, so it narrows the gap without closing it. RUM cannot see inside iframes, and Long
+  Animation Frame script attribution exists in Chromium only.
 - While data collects, do step 4's HTML checks and a lab reproduction guided by the field data. Label it lab evidence.
 
 ### 4. Map the evidence to WordPress owners (read-only)

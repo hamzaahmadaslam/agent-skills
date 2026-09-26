@@ -149,8 +149,8 @@ Beacon (`beacon.js`). It follows the README's queue-and-flush pattern with `navi
 /*
  * Core Web Vitals field beacon for a wp-cwv-field-triage investigation.
  * Needs the web-vitals attribution build (IIFE file, global `webVitals`) loaded first.
- * Sends a sample of page views to window.cwvFieldConfig.endpoint. It sends no personal data: the page path
- * without query string, a page type from WordPress body classes, and three flags (mobile, Chromium, logged in).
+ * Sends a sample of page views to window.cwvFieldConfig.endpoint. It sends no user IDs, cookies or query strings:
+ * the page path, a page type from WordPress body classes, and three flags (mobile, Chromium, logged in).
  */
 (function () {
   'use strict';
@@ -317,13 +317,17 @@ Each request body is a JSON array of these objects; store one body per line.
 | `page` | `location.pathname`, no query string or fragment |
 | `pageType` | best guess from body classes |
 | `mobile` | `navigator.userAgentData.mobile` where available, else a coarse-pointer media query |
-| `chromium` | the browser reports a `Chromium` brand (use it to compare with CrUX, which is Chrome only) |
+| `chromium` | the browser reports a `Chromium` brand: Chrome, and also Edge and other Chromium browsers (use it to get closer to CrUX, which is Chrome only) |
 | `loggedIn` | the `logged-in` body class is present |
 | `attribution` | the fields listed above, same names as web-vitals; `scripts` holds the five longest LoAF scripts |
 
-Privacy: the payload holds no user IDs, cookies, query strings or form contents. The collector still sees each
-request's IP address, so it should not store it. Load the beacon only where the site's consent setup allows analytics
-scripts, and keep the sample rate low.
+Privacy: the payload holds no user IDs, cookies, query strings or form contents. The path itself can still point to
+a person or an order (a member profile, `/my-account/view-order/123/`, `/checkout/order-received/123/`); leave such
+pages out, for example with `if ( function_exists( 'is_account_page' ) && ( is_account_page() ||
+is_order_received_page() ) ) { return; }` at the start of the loader's callback on a WooCommerce site
+([wc-conditional-functions.php at 11.1.2](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/wc-conditional-functions.php#L195-L249)).
+The collector still sees each request's IP address, so it should not store it. Load the beacon only where the site's
+consent setup allows analytics scripts, and keep the sample rate low.
 
 ## Reading the beacons
 
@@ -333,8 +337,10 @@ node scripts/rum-summary.mjs beacons.ndjson --site=https://www.example.com --met
 node scripts/rum-summary.mjs beacons.ndjson --site=https://www.example.com --by=page --metric=LCP --top=10
 ```
 
-- The script de-duplicates repeated reports of one metric (same `name` and `id`) and keeps the highest value, since
-  CLS and INP are reported again when the page is hidden.
+- The script de-duplicates repeated reports of one metric (same `name` and `id`), since CLS and INP are reported
+  again when the page is hidden. It keeps the highest CLS or LCP value and the last INP report in file order: INP
+  skips one interaction per 50, so it can fall as interactions add up
+  ([InteractionManager.ts L79-L105 at v6.2.2](https://github.com/GoogleChrome/web-vitals/blob/v6.2.2/src/lib/InteractionManager.ts#L79-L105)).
 - For slow records (above the good threshold) it prints the average share of each LCP subpart or INP phase, the LCP
   resource owners, the script owners with the time their longest script overlapped the interaction, and the CLS
   shift targets.

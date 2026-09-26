@@ -66,7 +66,8 @@ Two adjustments after reading the code:
 
 What the ruleset changes on top of `WordPressVIPMinimum`
 ([WordPress-VIP-Go ruleset](https://github.com/Automattic/VIP-Coding-Standards/blob/3.1.0/WordPress-VIP-Go/ruleset.xml)).
-Everything not listed keeps the type its sniff sets and severity 5, the PHPCS default
+Everything not listed keeps the type `WordPressVIPMinimum` gives it (the sniff's own, except the codes that ruleset
+raises to errors or lowers to warnings, which `sniff-catalogue.md` notes) and severity 5, the PHPCS default
 ([PHPCS Advanced Usage](https://github.com/PHPCSStandards/PHP_CodeSniffer/wiki/Advanced-Usage)). Codes below drop
 the `WordPressVIPMinimum.` prefix where the sniff is VIP's own.
 

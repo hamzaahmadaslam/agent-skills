@@ -120,7 +120,7 @@ None.
 
 ## Pre-existing issues (not introduced by this change)
 
-None: the change adds new files only.
+None: both reviewed files are new.
 
 ## Not checked
 

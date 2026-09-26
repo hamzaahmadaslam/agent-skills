@@ -53,12 +53,17 @@ Ask the user before installing anything. Use the first option that applies.
 
 1. **The repository already has it.** Look for `vendor/bin/phpcs` and run `vendor/bin/phpcs -i`.
 2. **The repository's `composer.json` requires it.** The VIP skeleton requires `automattic/vipwpcs` `^3` and
-   `phpcompatibility/phpcompatibility-wp` `^2`, and ignores `/vendor/` in git, so `composer install` from the
-   repository root adds the tools without changing tracked files. If the repository has no `composer.lock`,
-   Composer writes one: tell the user, and keep it out of the change under review.
+   `phpcompatibility/phpcompatibility-wp` `^2`, and ignores `/vendor/` in git, so `composer install --no-scripts`
+   from the repository root adds the tools without changing tracked files. `--no-scripts` stops the repository's own
+   Composer scripts (`post-install-cmd` and the rest), which are code from the change, from running; Composer
+   plugins still run, the standards installer among them, so when the change edits `composer.json` or
+   `composer.lock`, use option 3 instead. If the repository has no `composer.lock`, Composer writes one: tell the
+   user, and keep it out of the change under review.
    Sources: [skeleton composer.json](https://github.com/Automattic/vip-go-skeleton/blob/master/composer.json),
    [skeleton .gitignore](https://github.com/Automattic/vip-go-skeleton/blob/master/.gitignore),
-   [php_codesniffer/phpcs-xml-dist](https://docs.wpvip.com/php_codesniffer/phpcs-xml-dist/).
+   [php_codesniffer/phpcs-xml-dist](https://docs.wpvip.com/php_codesniffer/phpcs-xml-dist/),
+   [Composer scripts](https://github.com/composer/composer/blob/main/doc/articles/scripts.md),
+   [Composer CLI, global options](https://github.com/composer/composer/blob/main/doc/03-cli.md).
 3. **Global install**, as VIP documents it. It changes the user's global Composer setup, so ask first:
 
    ```sh
@@ -91,7 +96,7 @@ repository, so nothing lands in the working tree.
 BASE=origin/production   # or origin/main, origin/develop: the pull request's target branch
 OUT="$(mktemp -d)"
 git fetch origin
-git diff --name-only --diff-filter=d "$BASE...HEAD" -- '*.php' '*.inc' '*.js' > "$OUT/files.txt"
+git -c core.quotePath=false diff --name-only --diff-filter=d "$BASE...HEAD" -- '*.php' '*.inc' '*.js' > "$OUT/files.txt"
 git diff "$BASE...HEAD" > "$OUT/change.diff"
 vendor/bin/phpcs --standard=WordPress-VIP-Go --severity=1 -s --basepath=. \
   --report=json --report-file="$OUT/phpcs.json" --file-list="$OUT/files.txt"

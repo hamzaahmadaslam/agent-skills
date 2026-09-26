@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs git, and PHP 7.4+ with Composer for PHP_CodeSniffer 3.x and VIP Coding Standards 3.x. Without them the skill does the manual pass only.
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 
@@ -85,7 +85,7 @@ which option to use. If nothing can be installed, continue with the manual pass 
 
 ```sh
 OUT="$(mktemp -d)"
-git diff --name-only --diff-filter=d "$BASE...HEAD" -- '*.php' '*.inc' '*.js' > "$OUT/files.txt"
+git -c core.quotePath=false diff --name-only --diff-filter=d "$BASE...HEAD" -- '*.php' '*.inc' '*.js' > "$OUT/files.txt"
 git diff "$BASE...HEAD" > "$OUT/change.diff"
 vendor/bin/phpcs --standard=WordPress-VIP-Go --severity=1 -s --basepath=. \
   --report=json --report-file="$OUT/phpcs.json" --file-list="$OUT/files.txt"
@@ -94,6 +94,8 @@ vendor/bin/phpcs --standard=PHPCompatibilityWP --severity=1 -s --basepath=. --ru
 grep -E '\.(php|inc)$' "$OUT/files.txt" | while IFS= read -r f; do php -l "$f"; done
 ```
 
+- An empty `files.txt` means the change has no PHP or JavaScript files: skip PHPCS, the lint and step 4 (PHPCS
+  stops with "You must supply at least one file or directory to process"), and go to the manual pass.
 - `--severity=1` matters: PHPCS hides severities 1 to 4 by default, and the Bot shows them.
 - Set `testVersion` to the highest PHP version among the environments the repository deploys to (ask if unknown).
   Skip the second command if `PHPCompatibilityWP` is not installed, and say so.
@@ -136,7 +138,7 @@ Go through the changed code with these questions. Each points to the reference t
 | Does a front-end or REST `GET` request write to the database, options or meta? | `references/platform-rules.md`: Database queries |
 | Remote calls: HTTP API, cached, timeout of 3 seconds or less, never uncached on the front end? | `references/platform-rules.md`: Remote requests |
 | Queries: bounded (never `-1` or `nopaging`), no `post__not_in` or `orderby => rand`, no query on `meta_value` alone, `include_children => false`, direct SQL prepared and cached? | `references/platform-rules.md`: Database queries |
-| Object cache: expiry of 300 seconds or more, entries under 1 MB, no group flush, no private data in cached pages? | `references/platform-rules.md`: Caching layers |
+| Object cache: expiry of 300 seconds or more, entries under 1 MB, no group flush, no private data in cached pages? | `references/platform-rules.md`: Caching layers; `references/sniff-catalogue.md`: Performance (`LowExpiryCacheTime`) |
 | File writes only to `/tmp` (cleaned up) or to uploads through `wp_get_upload_dir()`; no directory listing inside uploads? | `references/platform-rules.md`: Files |
 | Options that are large, rarely read or often written stay out of autoload? | `references/platform-rules.md`: Options and autoload |
 | Escaping late and by context, input validated early, a nonce and a capability check on every state change, `permission_callback` on REST routes, prepared SQL, safe redirects, DOM building in JavaScript? | `references/security-checks.md` |
@@ -184,12 +186,12 @@ otherwise **Ready to merge**.
 - The session sniff reports every `session_*()` call as an error, while VIP's docs support PHP sessions with a cost:
   every request with a session skips the page cache. It stays a blocker (the Bot fails on it) unless the change
   justifies the session, limits it to the URLs that need it, and carries a targeted annotation.
-- `get_posts()` is reported as uncached unless `suppress_filters` is `false`; `suppress_filters => true` in
-  query arguments is an error.
+- Every `get_posts()` call is reported as uncached, whatever its arguments; the message says to ignore it when
+  `suppress_filters` is `false`, so check the arguments. `suppress_filters => true` in query arguments is an error.
 - JavaScript-specific VIPCS sniffs are deprecated and excluded since 3.1.0. Review `innerHTML`, `.html()` and
   similar by hand.
-- Auto-approval covers file types such as `.json` and `.lock`, so a `composer.json` or `composer.lock` change can
-  pass the Bot without review. Read dependency changes yourself.
+- Auto-approval covers file types such as `.json` (`.lock` is not on VIP's list), so a pull request that changes only
+  `composer.json` can pass the Bot without review. Read dependency changes yourself.
 
 ## Reference files
 

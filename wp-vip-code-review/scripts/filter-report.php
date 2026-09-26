@@ -34,7 +34,8 @@ Options:
   --diff=<file>     Unified diff of the change, from: git diff BASE...HEAD > change.diff
   --format=<name>   markdown (default) or json
   --all             Also list findings on lines the change did not touch, as "pre-existing"
-  --max=<N>         Rows listed per section (default 200); counts always cover everything
+  --max=<N>         Rows listed per section (default 200); in JSON, rows in "findings" across all levels, the
+                    most serious first. Counts always cover everything
   --help            Show this help
 
 Examples:

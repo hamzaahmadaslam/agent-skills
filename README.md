@@ -10,18 +10,18 @@ its facts were last checked (`metadata.last_verified`).
 
 ## The skills
 
-| Skill                                                                        | What it does                                                                                               |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [wp-vip-code-review](wp-vip-code-review/SKILL.md)                            | Reviews a change against Automattic's VIP coding standards and the WordPress VIP platform rules             |
-| [wp-multisite-migration](wp-multisite-migration/SKILL.md)                    | Moves a subsite out of or into a network: tables, users, uploads, domain mapping, search-replace           |
-| [woo-hpos-live-migration](woo-hpos-live-migration/SKILL.md)                  | Migrates a live store to HPOS: compatibility, sync, verification, cut-over and rollback                    |
-| [woo-checkout-performance-audit](woo-checkout-performance-audit/SKILL.md)    | Audits a running checkout: sessions, cart fragments, Action Scheduler, gateways, object cache              |
-| [wp-cwv-field-triage](wp-cwv-field-triage/SKILL.md)                          | Traces CrUX field data and INP attribution to the plugin or theme responsible                              |
-| [wp-slow-query-investigation](wp-slow-query-investigation/SKILL.md)          | Finds slow queries (Query Monitor, the slow query log), reads `EXPLAIN` on MySQL and MariaDB, fixes them with a rollback |
-| [wp-cron-action-scheduler-health](wp-cron-action-scheduler-health/SKILL.md)  | Moves WP-Cron to a real cron and keeps Action Scheduler healthy                                             |
-| [wp-autoload-audit](wp-autoload-audit/SKILL.md)                              | Measures and cleans autoloaded options with the WordPress 6.6 values, with rollback                        |
-| [agent-tool-call-audit](agent-tool-call-audit/SKILL.md)                      | Reviews the tool calls an agent made (a transcript or log) for scope, data exposure and irreversible steps |
-| [rag-corpus-audit](rag-corpus-audit/SKILL.md)                                | Audits a knowledge base before indexing: chunk quality, duplicates, stale claims, contradictions, coverage gaps, secrets and personal data |
+| Skill                                                                       | What it does                                                                                                                               |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| [wp-vip-code-review](wp-vip-code-review/SKILL.md)                           | Reviews a change against Automattic's VIP coding standards and the WordPress VIP platform rules                                            |
+| [wp-multisite-migration](wp-multisite-migration/SKILL.md)                   | Moves a subsite out of or into a network: tables, users, uploads, domain mapping, search-replace                                           |
+| [woo-hpos-live-migration](woo-hpos-live-migration/SKILL.md)                 | Migrates a live store to HPOS: compatibility, sync, verification, cut-over and rollback                                                    |
+| [woo-checkout-performance-audit](woo-checkout-performance-audit/SKILL.md)   | Audits a running checkout: sessions, cart fragments, Action Scheduler, gateways, object cache                                              |
+| [wp-cwv-field-triage](wp-cwv-field-triage/SKILL.md)                         | Traces CrUX field data and INP attribution to the plugin or theme responsible                                                              |
+| [wp-slow-query-investigation](wp-slow-query-investigation/SKILL.md)         | Finds slow queries (Query Monitor, the slow query log), reads `EXPLAIN` on MySQL and MariaDB, fixes them with a rollback                   |
+| [wp-cron-action-scheduler-health](wp-cron-action-scheduler-health/SKILL.md) | Moves WP-Cron to a real cron and keeps Action Scheduler healthy                                                                            |
+| [wp-autoload-audit](wp-autoload-audit/SKILL.md)                             | Measures and cleans autoloaded options with the WordPress 6.6 values, with rollback                                                        |
+| [agent-tool-call-audit](agent-tool-call-audit/SKILL.md)                     | Reviews the tool calls an agent made (a transcript or log) for scope, data exposure and irreversible steps                                 |
+| [rag-corpus-audit](rag-corpus-audit/SKILL.md)                               | Audits a knowledge base before indexing: chunk quality, duplicates, stale claims, contradictions, coverage gaps, secrets and personal data |
 
 ## Install a skill
 

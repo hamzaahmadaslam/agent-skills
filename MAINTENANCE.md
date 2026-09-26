@@ -43,18 +43,18 @@ A full review with no changes still updates `last_verified` and leaves `version`
 Each skill's `references/` files list their sources inline; those are the pages to re-open. The facts that go stale
 first:
 
-| Skill                             | Re-check first                                                                                                                                                                   |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skill                             | Re-check first                                                                                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `wp-vip-code-review`              | VIP Coding Standards releases, minimum versions and both `ruleset.xml` files (types and severities); the VIP documentation pages on PHPCS, the Code Analysis Bot, caching, files, queries, cron and redirects |
-| `wp-multisite-migration`          | WP-CLI command options, multisite table layout, domain mapping behaviour                                                                                                          |
-| `woo-hpos-live-migration`         | WooCommerce HPOS settings, sync behaviour and CLI commands in the current WooCommerce release                                                                                      |
-| `woo-checkout-performance-audit`  | WooCommerce session, cart fragment and Action Scheduler defaults                                                                                                                  |
-| `wp-cwv-field-triage`             | Core Web Vitals thresholds, CrUX API and INP attribution fields                                                                                                                   |
-| `wp-slow-query-investigation`     | MySQL and MariaDB `EXPLAIN` output, Query Monitor panels, WordPress core indexes                                                                                                  |
-| `wp-cron-action-scheduler-health` | WP-Cron constants, Action Scheduler tables and WP-CLI commands                                                                                                                    |
-| `wp-autoload-audit`               | Autoload values and thresholds in the current WordPress release                                                                                                                   |
-| `agent-tool-call-audit`           | The MCP specification's tool annotations and the transcript formats covered                                                                                                       |
-| `rag-corpus-audit`                | The chunking and retrieval guidance cited in its references                                                                                                                       |
+| `wp-multisite-migration`          | WP-CLI command options, multisite table layout, domain mapping behaviour                                                                                                                                      |
+| `woo-hpos-live-migration`         | WooCommerce HPOS settings, sync behaviour and CLI commands in the current WooCommerce release                                                                                                                 |
+| `woo-checkout-performance-audit`  | WooCommerce session, cart fragment and Action Scheduler defaults                                                                                                                                              |
+| `wp-cwv-field-triage`             | Core Web Vitals thresholds, CrUX API and INP attribution fields                                                                                                                                               |
+| `wp-slow-query-investigation`     | MySQL and MariaDB `EXPLAIN` output, Query Monitor panels, WordPress core indexes                                                                                                                              |
+| `wp-cron-action-scheduler-health` | WP-Cron constants, Action Scheduler tables and WP-CLI commands                                                                                                                                                |
+| `wp-autoload-audit`               | Autoload values and thresholds in the current WordPress release                                                                                                                                               |
+| `agent-tool-call-audit`           | The MCP specification's tool annotations and the transcript formats covered                                                                                                                                   |
+| `rag-corpus-audit`                | The chunking and retrieval guidance cited in its references                                                                                                                                                   |
 
 ## The link check
 
@@ -86,9 +86,11 @@ When the check fails:
 ## Adding a skill
 
 1. Create `<name>/SKILL.md`. The folder name and the `name` field match: lowercase letters, digits and single
-   hyphens, 64 characters at most ([specification](https://agentskills.io/specification)).
+   hyphens, no hyphen at the start or end, 64 characters at most
+   ([specification](https://agentskills.io/specification)).
 2. Front matter: `name`, a `description` that says what the skill does and when to use it (1,024 characters at
-   most), `license: MIT`, and `metadata` with `author`, `version` and `last_verified`.
+   most), `license: MIT`, `compatibility` for the tools and versions the skill needs (500 characters at most), and
+   `metadata` with `author`, `version` and `last_verified`.
 3. Keep `SKILL.md` under 500 lines. Detailed, sourced facts go in `references/`, one topic per file, each fact with
    its source URL beside it. Primary sources only: vendor documentation, source code, release notes, specifications.
 4. Helper scripts go in `scripts/`, are read-only, and say so in a comment at the top.

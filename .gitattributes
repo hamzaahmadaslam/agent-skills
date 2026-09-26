@@ -1,3 +1,7 @@
 # Shell scripts must keep Unix line endings, or bash on Linux and WSL fails on them.
 * text=auto
 *.sh text eol=lf
+
+# Example files keep Unix line endings too: the skills quote their SHA-256 and the exact output the helper scripts
+# print for them, and both change when Git converts the files to CRLF on checkout.
+*/examples/** text eol=lf

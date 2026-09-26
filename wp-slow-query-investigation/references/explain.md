@@ -23,16 +23,21 @@ Rules that follow from the table:
   connection id before it measures, so another session can run `KILL QUERY <id>`.
 - `EXPLAIN` needs the same privileges as the statement, plus `SHOW VIEW` for views
   ([MySQL EXPLAIN](https://dev.mysql.com/doc/refman/8.4/en/explain.html)). In MariaDB it can take metadata locks as a
-  `SELECT` does, and sometimes reads data while planning
+  `SELECT` does, and sometimes reads data while planning: a `const` table (one matching row) is read before the
+  optimization phase
   ([MariaDB EXPLAIN](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/analyze-and-explain-statements/explain)).
+  So a plain `EXPLAIN` can run a stored function: in a check on 2026-09-26, MariaDB 10.11.14 ran a `DETERMINISTIC`
+  function that inserts a row while it planned `WHERE ID = f(1)` and `WHERE ID = (SELECT f(1))`; MySQL 8.4.11 ran it
+  in neither case. `scripts/explain-select.php` therefore refuses unknown functions on MariaDB even without `analyze`.
 
 ## Output formats
 
-- MySQL: `FORMAT=TRADITIONAL` (the table), `JSON`, or `TREE` (8.0.16 and later; the only format that shows hash
-  joins). The default is set by `explain_format` (8.0.32 and later), `TRADITIONAL` unless changed. `EXPLAIN ANALYZE`
-  always uses `TREE` and shows, per step, the estimated cost and rows, the time to the first row, the time spent in
-  the step in milliseconds (an average per loop when the step runs several times), the rows returned and the number of
-  loops
+- MySQL: `FORMAT=TRADITIONAL` (the table), `JSON`, or `TREE` (8.0.16 and later; the plan as nested steps). All three
+  show hash joins: the table as `Using join buffer (hash join)` in `Extra`. The default is set by `explain_format`
+  (8.0.32 and later), `TRADITIONAL` unless changed. `EXPLAIN ANALYZE` uses `TREE`, or `JSON` when
+  `explain_json_format_version` is 2 (8.3 and later), and shows, per step, the estimated cost and rows, the time to the
+  first row, the time spent in the step in milliseconds (an average per loop when the step runs several times), the
+  rows returned and the number of loops
   ([MySQL EXPLAIN](https://dev.mysql.com/doc/refman/8.4/en/explain.html);
   [explain_format](https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html#sysvar_explain_format)).
 - MariaDB: `EXPLAIN`, `EXPLAIN EXTENDED` (adds `filtered`), `EXPLAIN FORMAT=JSON`; `ANALYZE` adds `r_rows` (rows

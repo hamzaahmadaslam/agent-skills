@@ -97,7 +97,7 @@ export function fingerprint(sql) {
   }
   return out
     .replace(/\b0x[0-9a-f]+\b/gi, '?')
-    .replace(/(^|[^\w.])-?\d+(?:\.\d+)?(?:e[+-]?\d+)?(?![\w])/gi, '$1?')
+    .replace(/(^|[^\w.])-?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?(?![\w])/gi, '$1?')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase()
@@ -205,6 +205,8 @@ async function main() {
     }
     if (line.startsWith('#')) {
       const isStart = /^# (Time|User@Host|Query_time):/.test(line);
+      // Inside a statement, only the header of the next entry ends it; other # lines are part of the statement.
+      if (entry.lines.length && !isStart) { entry.lines.push(line); return; }
       if (entry.lines.length || entry.admin !== null || (isStart && entry.hasQueryTime)) finish();
       if (/^# (Time|User@Host):/.test(line)) return; // time comes from SET timestamp; user and host are never kept
       const admin = line.match(/^# administrator command: (.*?);?\s*$/);

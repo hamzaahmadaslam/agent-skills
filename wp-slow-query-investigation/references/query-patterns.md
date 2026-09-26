@@ -7,8 +7,9 @@ plugin code are proposals for the developer; this skill does not edit plugin fil
 
 ## Meta queries (`meta_query`, `meta_key` and `meta_value`)
 
-- SQL: every clause joins the meta table once more (`INNER JOIN wp_postmeta AS mt1 ON ( wp_posts.ID = mt1.post_id )`,
-  then `mt2` and so on; clauses under an `OR` relation can share a join)
+- SQL: every clause joins the meta table once more (the first as `wp_postmeta`, then
+  `INNER JOIN wp_postmeta AS mt1 ON ( wp_posts.ID = mt1.post_id )`, `mt2` and so on; clauses under an `OR` relation
+  can share a join)
   ([class-wp-meta-query.php L590-L615](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-meta-query.php#L590-L615)).
   - A `type` other than `CHAR` wraps the value in a cast: `CAST(mt1.meta_value AS SIGNED) > '10'`; `NUMERIC`
     becomes `SIGNED`
@@ -39,10 +40,11 @@ plugin code are proposals for the developer; this skill does not edit plugin fil
 
 ## Ordering by a meta value
 
-- SQL: `orderby => meta_value` sorts by `CAST(mt1.meta_value AS <type>)` and `meta_value_num` by `mt1.meta_value+0`
+- SQL: `orderby => meta_value` sorts by the meta join's `meta_value` column, as text unless the meta query sets a
+  `type` (then `CAST(... AS <type>)`), and `meta_value_num` by `meta_value+0`
   ([class-wp-query.php L1772-L1782](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/class-wp-query.php#L1772-L1782)).
-- Why it scans: the sort key is an expression computed per row, so every matching row is read and sorted
-  (`Using filesort`) before `LIMIT` applies ([ORDER BY optimization](https://dev.mysql.com/doc/refman/8.4/en/order-by-optimization.html)).
+- Why it scans: no index gives this order (`meta_value` has no index, and a cast or `+0` is computed per row), so
+  every matching row is read and sorted (`Using filesort`) before `LIMIT` applies ([ORDER BY optimization](https://dev.mysql.com/doc/refman/8.4/en/order-by-optimization.html)).
 - Fixes: sort a smaller set (narrow first); sort by a posts column (`date`, `title`, `menu_order`) where the design
   allows; keep a precomputed order in a lookup table (WooCommerce does this for price, popularity and rating).
 

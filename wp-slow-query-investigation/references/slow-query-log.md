@@ -1,6 +1,6 @@
 # The slow query log on MySQL and MariaDB
 
-Read this for step 1 of the procedure. MySQL facts come from the MySQL 8.4 Reference Manual (8.4.12 was the newest
+Read this for step 1 of the procedure. MySQL facts come from the MySQL 8.4 Reference Manual (8.4.11 was the newest
 8.4 release on 2026-09-26), MariaDB facts from mariadb.com/docs on the same date. Enabling the log is a server
 change: it follows the backup, check and undo form in [changes-and-rollback.md](changes-and-rollback.md).
 

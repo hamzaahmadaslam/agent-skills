@@ -143,8 +143,13 @@ $sqi_line( 'Site Health thresholds', '800000 bytes critical; object cache sugges
 
 // Core indexes: compare SHOW INDEX with the WordPress 7.1.2 schema (references/wordpress-schema.md).
 $sqi_section( 'WordPress 7.1.2 core indexes on this site (SHOW INDEX, read-only)' );
+$sqi_posts_indexes = array( 'PRIMARY', 'post_name', 'type_status_date', 'post_parent', 'post_author' );
+// WordPress 6.9 added type_status_author; older releases do not have it (references/version-notes.md).
+if ( version_compare( get_bloginfo( 'version' ), '6.9', '>=' ) ) {
+	$sqi_posts_indexes[] = 'type_status_author';
+}
 $sqi_expected = array(
-	$wpdb->posts              => array( 'PRIMARY', 'post_name', 'type_status_date', 'post_parent', 'post_author', 'type_status_author' ),
+	$wpdb->posts              => $sqi_posts_indexes,
 	$wpdb->postmeta           => array( 'PRIMARY', 'post_id', 'meta_key' ),
 	$wpdb->options            => array( 'PRIMARY', 'option_name', 'autoload' ),
 	$wpdb->terms              => array( 'PRIMARY', 'slug', 'name' ),

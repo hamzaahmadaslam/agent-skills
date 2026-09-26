@@ -18,10 +18,13 @@ HPOS) and the `woo-checkout-performance-audit` skill (order table indexes) in th
 - What uses it: the catalog's price filter and its sorting by price, popularity (`total_sales`) and rating join this
   table instead of post meta
   ([class-wc-query.php L776-L885](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/class-wc-query.php#L776-L885));
-  so do SKU lookups and the on-sale and featured product lists
+  so do SKU lookups and the on-sale product list
   ([class-wc-product-data-store-cpt.php L1196-L1400](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/data-stores/class-wc-product-data-store-cpt.php#L1196-L1400)).
-- The data store updates the product's row on each save
-  ([class-wc-product-data-store-cpt.php L925-L954](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/data-stores/class-wc-product-data-store-cpt.php#L925-L954)).
+  The featured product list is a taxonomy query on `product_visibility` and does not use the table
+  ([L1245-L1270](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/data-stores/class-wc-product-data-store-cpt.php#L1245-L1270)).
+- When a product is saved, the data store updates its row only if a property the table holds changed: SKU, global
+  unique ID, prices, sale dates, total sales, rating, stock, the virtual and downloadable flags, or tax settings
+  ([class-wc-product-data-store-cpt.php L931-L937](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/data-stores/class-wc-product-data-store-cpt.php#L931-L937)).
   WooCommerce > Status > Tools > "Product lookup tables" (Regenerate) rebuilds it: it inserts every product ID, then
   fills the columns through scheduled actions
   ([tools controller L150-L155](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/rest-api/Controllers/Version2/class-wc-rest-system-status-tools-v2-controller.php#L150-L155);

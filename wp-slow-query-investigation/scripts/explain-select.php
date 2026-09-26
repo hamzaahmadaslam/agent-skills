@@ -7,8 +7,9 @@
  * reads, executable comments or functions with side effects (SLEEP, GET_LOCK, LOAD_FILE and similar). By default it
  * runs plain EXPLAIN, which does not execute the statement. With the extra argument `analyze` it measures the SELECT
  * (MySQL 8.0.18+ EXPLAIN ANALYZE, MariaDB ANALYZE): that executes the SELECT, as expensive as the slow request itself,
- * so use it on a staging copy or a replica only. In analyze mode it also refuses functions it does not recognize,
- * because a stored function could write data.
+ * so use it on a staging copy or a replica only. In analyze mode, and on MariaDB always, it also refuses functions it
+ * does not recognize and quoted names called as functions, because a stored function could write data: MariaDB can run
+ * one while it plans a plain EXPLAIN (references/explain.md).
  *
  * Usage (from the WordPress root, or with --path=...):
  *   wp eval-file explain-select.php query.sql              # plan only (read-only, safe on production)
@@ -24,23 +25,26 @@
 if ( ! function_exists( 'sqi_explain_mask' ) ) {
 	/**
 	 * Replaces string literals, quoted identifiers and comments with placeholders, reading the statement character by
-	 * character so that quotes inside comments and comment markers inside strings are handled. Returns array( masked
-	 * text, true when a quote or comment is left open ).
+	 * character so that quotes inside comments and comment markers inside strings are handled. A name in backticks
+	 * becomes `q<n>`, where n is its index in the list of names. Returns array( masked text, true when a quote or
+	 * comment is left open, the names that were in backticks ).
 	 *
 	 * @param string $sql The statement.
 	 * @return array
 	 */
 	function sqi_explain_mask( $sql ) {
-		$out  = '';
-		$len  = strlen( $sql );
-		$open = false;
-		$i    = 0;
+		$out   = '';
+		$len   = strlen( $sql );
+		$open  = false;
+		$names = array();
+		$i     = 0;
 		while ( $i < $len ) {
 			$c    = $sql[ $i ];
 			$next = $i + 1 < $len ? $sql[ $i + 1 ] : '';
 			if ( "'" === $c || '"' === $c || '`' === $c ) {
 				$quote  = $c;
 				$closed = false;
+				$start  = $i + 1;
 				++$i;
 				while ( $i < $len ) {
 					if ( '\\' === $sql[ $i ] && '`' !== $quote ) {
@@ -58,8 +62,13 @@ if ( ! function_exists( 'sqi_explain_mask' ) ) {
 					++$i;
 				}
 				$open = $open || ! $closed;
+				if ( '`' === $quote ) {
+					$names[] = str_replace( '``', '`', substr( $sql, $start, $i - $start ) );
+					$out    .= ' `q' . ( count( $names ) - 1 ) . '` ';
+				} else {
+					$out .= " '' ";
+				}
 				++$i;
-				$out .= '`' === $quote ? ' `x` ' : " '' ";
 				continue;
 			}
 			if ( '/' === $c && '*' === $next ) {
@@ -77,7 +86,7 @@ if ( ! function_exists( 'sqi_explain_mask' ) ) {
 			$out .= $c;
 			++$i;
 		}
-		return array( $out, $open );
+		return array( $out, $open, $names );
 	}
 }
 
@@ -87,9 +96,10 @@ if ( ! function_exists( 'sqi_explain_check' ) ) {
 	 *
 	 * @param string $sql     The statement.
 	 * @param bool   $analyze Whether the statement will be executed (EXPLAIN ANALYZE or ANALYZE).
+	 * @param bool   $mariadb Whether the server is MariaDB, which can run a stored function during a plain EXPLAIN.
 	 * @return array
 	 */
-	function sqi_explain_check( $sql, $analyze ) {
+	function sqi_explain_check( $sql, $analyze, $mariadb = false ) {
 		$errors = array();
 		$sql    = trim( (string) $sql );
 		$sql    = preg_replace( '/;\s*$/', '', $sql );
@@ -97,12 +107,12 @@ if ( ! function_exists( 'sqi_explain_check' ) ) {
 		if ( '' === $sql ) {
 			return array( 'ok' => false, 'errors' => array( 'The file is empty.' ), 'sql' => '' );
 		}
-		if ( preg_match( '#/\*[!M]#', $sql ) ) {
+		if ( preg_match( '#/\*M?!#', $sql ) ) {
 			$errors[] = 'Executable comments (/*! ... */ or /*M! ... */) are not allowed.';
 		}
 
 		// Mask string literals, quoted identifiers and comments so keywords inside them do not count.
-		list( $masked, $open ) = sqi_explain_mask( $sql );
+		list( $masked, $open, $backticked ) = sqi_explain_mask( $sql );
 		if ( $open ) {
 			$errors[] = 'A quote or a comment is not closed.';
 		}
@@ -131,17 +141,35 @@ if ( ! function_exists( 'sqi_explain_check' ) ) {
 			}
 		}
 		$side_effects = array( 'SLEEP', 'BENCHMARK', 'GET_LOCK', 'RELEASE_LOCK', 'RELEASE_ALL_LOCKS', 'IS_USED_LOCK', 'LOAD_FILE', 'NEXTVAL', 'SETVAL', 'LASTVAL', 'MASTER_POS_WAIT', 'SOURCE_POS_WAIT', 'MASTER_GTID_WAIT', 'WAIT_FOR_EXECUTED_GTID_SET', 'WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS', 'SYS_EXEC', 'SYS_EVAL' );
-		preg_match_all( '/\b([A-Z_][A-Z0-9_]*)\s*\(/', $upper, $calls );
-		$names = array_unique( $calls[1] );
-		foreach ( array_intersect( $names, $side_effects ) as $name ) {
+		// Every name before "(": unquoted names (letters, digits, _, $ and non-ASCII characters) and names in backticks.
+		// A quoted string before "(" is a name too when the server runs with ANSI_QUOTES.
+		preg_match_all( '/(`Q\d+`|\'\'|[A-Z0-9_$\x80-\xFF]+)\s*\(/', $upper, $calls );
+		$unquoted = array();
+		$quoted   = array();
+		foreach ( $calls[1] as $call ) {
+			if ( preg_match( '/^`Q(\d+)`$/', $call, $index ) ) {
+				$quoted[ strtoupper( $backticked[ (int) $index[1] ] ) ] = '`' . $backticked[ (int) $index[1] ] . '`()';
+			} elseif ( "''" === $call ) {
+				$quoted['""'] = '"..."()';
+			} else {
+				$unquoted[ $call ] = true;
+			}
+		}
+		foreach ( array_intersect( array_keys( $unquoted + $quoted ), $side_effects ) as $name ) {
 			$errors[] = 'Function with side effects not allowed: ' . $name . '().';
 		}
 
-		if ( $analyze ) {
-			$known   = array( 'SELECT', 'WITH', 'FROM', 'JOIN', 'WHERE', 'ON', 'USING', 'IN', 'EXISTS', 'AS', 'AND', 'OR', 'NOT', 'XOR', 'UNION', 'ALL', 'ANY', 'SOME', 'VALUES', 'ROW', 'OVER', 'PARTITION', 'INDEX', 'KEY', 'DISTINCT', 'OF', 'BY', 'LIKE', 'REGEXP', 'RLIKE', 'BETWEEN', 'IS', 'THEN', 'ELSE', 'WHEN', 'IF', 'IFNULL', 'NULLIF', 'COALESCE', 'GREATEST', 'LEAST', 'ISNULL', 'COUNT', 'SUM', 'MIN', 'MAX', 'AVG', 'STD', 'STDDEV', 'VARIANCE', 'BIT_AND', 'BIT_OR', 'BIT_XOR', 'GROUP_CONCAT', 'ANY_VALUE', 'CAST', 'CONVERT', 'BINARY', 'CHAR', 'VARCHAR', 'DECIMAL', 'NUMERIC', 'SIGNED', 'UNSIGNED', 'DATETIME', 'DATE', 'TIME', 'TIMESTAMP', 'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND', 'MICROSECOND', 'WEEK', 'QUARTER', 'DAYOFMONTH', 'DAYOFWEEK', 'DAYOFYEAR', 'WEEKDAY', 'YEARWEEK', 'DAYNAME', 'MONTHNAME', 'LAST_DAY', 'NOW', 'CURDATE', 'CURTIME', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'UTC_DATE', 'UTC_TIME', 'UTC_TIMESTAMP', 'SYSDATE', 'UNIX_TIMESTAMP', 'FROM_UNIXTIME', 'DATE_FORMAT', 'DATE_ADD', 'DATE_SUB', 'ADDDATE', 'SUBDATE', 'DATEDIFF', 'TIMEDIFF', 'TIMESTAMPDIFF', 'TIMESTAMPADD', 'STR_TO_DATE', 'TO_DAYS', 'TO_SECONDS', 'TIME_TO_SEC', 'SEC_TO_TIME', 'EXTRACT', 'CONVERT_TZ', 'INTERVAL', 'CONCAT', 'CONCAT_WS', 'SUBSTRING', 'SUBSTR', 'SUBSTRING_INDEX', 'MID', 'LEFT', 'RIGHT', 'LENGTH', 'CHAR_LENGTH', 'CHARACTER_LENGTH', 'OCTET_LENGTH', 'BIT_LENGTH', 'LOWER', 'LCASE', 'UPPER', 'UCASE', 'TRIM', 'LTRIM', 'RTRIM', 'LPAD', 'RPAD', 'REPLACE', 'INSERT', 'REVERSE', 'REPEAT', 'SPACE', 'INSTR', 'LOCATE', 'POSITION', 'FIELD', 'FIND_IN_SET', 'ELT', 'MAKE_SET', 'STRCMP', 'SOUNDEX', 'QUOTE', 'FORMAT', 'ASCII', 'ORD', 'HEX', 'UNHEX', 'MD5', 'SHA', 'SHA1', 'SHA2', 'CRC32', 'CHARSET', 'COLLATION', 'WEIGHT_STRING', 'REGEXP_REPLACE', 'REGEXP_LIKE', 'REGEXP_SUBSTR', 'REGEXP_INSTR', 'MATCH', 'AGAINST', 'ROUND', 'FLOOR', 'CEIL', 'CEILING', 'TRUNCATE', 'ABS', 'MOD', 'SIGN', 'POW', 'POWER', 'SQRT', 'LOG', 'LOG2', 'LOG10', 'LN', 'EXP', 'PI', 'RAND', 'CONV', 'INET_ATON', 'INET_NTOA', 'JSON_EXTRACT', 'JSON_UNQUOTE', 'JSON_VALUE', 'JSON_CONTAINS', 'JSON_CONTAINS_PATH', 'JSON_LENGTH', 'JSON_KEYS', 'JSON_SEARCH', 'JSON_TYPE', 'JSON_VALID', 'JSON_OBJECT', 'JSON_ARRAY', 'JSON_ARRAYAGG', 'JSON_OBJECTAGG', 'JSON_OVERLAPS', 'MEMBER', 'ROW_NUMBER', 'RANK', 'DENSE_RANK', 'PERCENT_RANK', 'CUME_DIST', 'NTILE', 'LAG', 'LEAD', 'FIRST_VALUE', 'LAST_VALUE', 'NTH_VALUE', 'FOUND_ROWS', 'DATABASE', 'SCHEMA', 'VERSION', 'CONNECTION_ID', 'USER', 'CURRENT_USER' );
-			$unknown = array_diff( $names, $known );
+		if ( $analyze || $mariadb ) {
+			$refused = $analyze ? 'Analyze refused: ' : 'Refused on MariaDB, which can run a stored function while it plans an EXPLAIN: ';
+			$instead = $analyze && ! $mariadb ? ' Run the plain EXPLAIN instead.' : ' Put a literal value in place of the call to see the plan.';
+			$known   = array( 'SELECT', 'WITH', 'FROM', 'JOIN', 'WHERE', 'ON', 'USING', 'IN', 'EXISTS', 'AS', 'AND', 'OR', 'NOT', 'XOR', 'UNION', 'ALL', 'ANY', 'SOME', 'VALUES', 'ROW', 'OVER', 'PARTITION', 'INDEX', 'KEY', 'DISTINCT', 'OF', 'BY', 'LIKE', 'REGEXP', 'RLIKE', 'BETWEEN', 'IS', 'CASE', 'THEN', 'ELSE', 'WHEN', 'HAVING', 'DIV', 'IF', 'IFNULL', 'NULLIF', 'COALESCE', 'GREATEST', 'LEAST', 'ISNULL', 'COUNT', 'SUM', 'MIN', 'MAX', 'AVG', 'STD', 'STDDEV', 'VARIANCE', 'BIT_AND', 'BIT_OR', 'BIT_XOR', 'GROUP_CONCAT', 'ANY_VALUE', 'CAST', 'CONVERT', 'BINARY', 'CHAR', 'VARCHAR', 'DECIMAL', 'NUMERIC', 'SIGNED', 'UNSIGNED', 'DATETIME', 'DATE', 'TIME', 'TIMESTAMP', 'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND', 'MICROSECOND', 'WEEK', 'QUARTER', 'DAYOFMONTH', 'DAYOFWEEK', 'DAYOFYEAR', 'WEEKDAY', 'YEARWEEK', 'DAYNAME', 'MONTHNAME', 'LAST_DAY', 'NOW', 'CURDATE', 'CURTIME', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'UTC_DATE', 'UTC_TIME', 'UTC_TIMESTAMP', 'SYSDATE', 'UNIX_TIMESTAMP', 'FROM_UNIXTIME', 'DATE_FORMAT', 'DATE_ADD', 'DATE_SUB', 'ADDDATE', 'SUBDATE', 'DATEDIFF', 'TIMEDIFF', 'TIMESTAMPDIFF', 'TIMESTAMPADD', 'STR_TO_DATE', 'TO_DAYS', 'TO_SECONDS', 'TIME_TO_SEC', 'SEC_TO_TIME', 'EXTRACT', 'CONVERT_TZ', 'INTERVAL', 'CONCAT', 'CONCAT_WS', 'SUBSTRING', 'SUBSTR', 'SUBSTRING_INDEX', 'MID', 'LEFT', 'RIGHT', 'LENGTH', 'CHAR_LENGTH', 'CHARACTER_LENGTH', 'OCTET_LENGTH', 'BIT_LENGTH', 'LOWER', 'LCASE', 'UPPER', 'UCASE', 'TRIM', 'LTRIM', 'RTRIM', 'LPAD', 'RPAD', 'REPLACE', 'INSERT', 'REVERSE', 'REPEAT', 'SPACE', 'INSTR', 'LOCATE', 'POSITION', 'FIELD', 'FIND_IN_SET', 'ELT', 'MAKE_SET', 'STRCMP', 'SOUNDEX', 'QUOTE', 'FORMAT', 'ASCII', 'ORD', 'HEX', 'UNHEX', 'MD5', 'SHA', 'SHA1', 'SHA2', 'CRC32', 'CHARSET', 'COLLATION', 'WEIGHT_STRING', 'REGEXP_REPLACE', 'REGEXP_LIKE', 'REGEXP_SUBSTR', 'REGEXP_INSTR', 'MATCH', 'AGAINST', 'ROUND', 'FLOOR', 'CEIL', 'CEILING', 'TRUNCATE', 'ABS', 'MOD', 'SIGN', 'POW', 'POWER', 'SQRT', 'LOG', 'LOG2', 'LOG10', 'LN', 'EXP', 'PI', 'RAND', 'CONV', 'INET_ATON', 'INET_NTOA', 'JSON_EXTRACT', 'JSON_UNQUOTE', 'JSON_VALUE', 'JSON_CONTAINS', 'JSON_CONTAINS_PATH', 'JSON_LENGTH', 'JSON_KEYS', 'JSON_SEARCH', 'JSON_TYPE', 'JSON_VALID', 'JSON_OBJECT', 'JSON_ARRAY', 'JSON_ARRAYAGG', 'JSON_OBJECTAGG', 'JSON_OVERLAPS', 'MEMBER', 'ROW_NUMBER', 'RANK', 'DENSE_RANK', 'PERCENT_RANK', 'CUME_DIST', 'NTILE', 'LAG', 'LEAD', 'FIRST_VALUE', 'LAST_VALUE', 'NTH_VALUE', 'FOUND_ROWS', 'DATABASE', 'SCHEMA', 'VERSION', 'CONNECTION_ID', 'USER', 'CURRENT_USER' );
+			$unknown = array_diff( array_keys( $unquoted ), $known, $side_effects );
 			if ( $unknown ) {
-				$errors[] = 'Analyze refused: ' . implode( ', ', $unknown ) . '() is not a built-in function this helper knows, and a stored function could write data. Run the plain EXPLAIN instead.';
+				$errors[] = $refused . implode( ', ', $unknown ) . '() is not a built-in function this helper knows, and a stored function could write data.' . $instead;
+			}
+			// A quoted name can resolve to a stored function even when a built-in function has the same name.
+			if ( $quoted ) {
+				$errors[] = $refused . implode( ', ', $quoted ) . ' calls a quoted name, which can resolve to a stored function, and a stored function could write data.' . $instead;
 			}
 		}
 
@@ -221,8 +249,9 @@ if ( '' === $sqi_file || ! is_readable( $sqi_file ) ) {
 }
 
 global $wpdb;
-$sqi_sql   = str_replace( array( '{prefix}', '{base_prefix}' ), array( $wpdb->prefix, $wpdb->base_prefix ), (string) file_get_contents( $sqi_file ) );
-$sqi_check = sqi_explain_check( $sqi_sql, $sqi_analyze );
+$sqi_mariadb = false !== stripos( (string) $wpdb->db_server_info(), 'mariadb' );
+$sqi_sql     = str_replace( array( '{prefix}', '{base_prefix}' ), array( $wpdb->prefix, $wpdb->base_prefix ), (string) file_get_contents( $sqi_file ) );
+$sqi_check   = sqi_explain_check( $sqi_sql, $sqi_analyze, $sqi_mariadb );
 if ( ! $sqi_check['ok'] ) {
 	echo "Refused, nothing was run:\n";
 	foreach ( $sqi_check['errors'] as $sqi_error ) {
@@ -231,8 +260,7 @@ if ( ! $sqi_check['ok'] ) {
 	return;
 }
 
-$sqi_mariadb = false !== stripos( (string) $wpdb->db_server_info(), 'mariadb' );
-$sqi_run     = static function ( $statement ) use ( $wpdb ) {
+$sqi_run = static function ( $statement ) use ( $wpdb ) {
 	$suppress = $wpdb->suppress_errors( true );
 	$rows     = $wpdb->get_results( $statement, ARRAY_A );
 	$error    = $wpdb->last_error;
@@ -242,7 +270,7 @@ $sqi_run     = static function ( $statement ) use ( $wpdb ) {
 
 printf( "Server: %s\n", $wpdb->db_server_info() );
 
-// Plain EXPLAIN never executes the statement.
+// Plain EXPLAIN does not execute the statement (MariaDB may still compute constant values while planning).
 echo "\n== EXPLAIN (plan and estimates; the statement is not executed) ==\n";
 list( $sqi_rows, $sqi_error ) = $sqi_run( 'EXPLAIN ' . ( $sqi_json ? 'FORMAT=JSON ' : '' ) . $sqi_check['sql'] );
 if ( '' !== $sqi_error ) {

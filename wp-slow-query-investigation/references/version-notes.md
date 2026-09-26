@@ -11,7 +11,7 @@ apply the rows at or below them. A fix that needs a newer release is an update f
 | Query Monitor | 4.0.7 | [plugin directory](https://wordpress.org/plugins/query-monitor/); [tag 4.0.7](https://github.com/johnbillion/query-monitor/tree/4.0.7) |
 | WooCommerce | 11.1.2 | [release](https://github.com/woocommerce/woocommerce/releases/tag/11.1.2) |
 | WP-CLI | 2.12.0 | [release](https://github.com/wp-cli/wp-cli/releases/tag/v2.12.0) |
-| MySQL | 8.4 Reference Manual; newest 8.4 LTS release 8.4.12 (2026-08-18); newest 8.0 release 8.0.46 (2026-04-21); log format read from the `mysql-8.4.11` source tag | [8.4 release notes](https://dev.mysql.com/doc/relnotes/mysql/8.4/en/); [8.0 release notes](https://dev.mysql.com/doc/relnotes/mysql/8.0/en/); [release model](https://dev.mysql.com/doc/refman/8.4/en/mysql-releases.html) |
+| MySQL | 8.4 Reference Manual; newest 8.4 LTS release 8.4.11 (the newest `mysql-8.4.*` source tag on 2026-09-26); newest 8.0 release 8.0.46 (2026-04-21); log format read from the `mysql-8.4.11` source tag | [8.4 release notes](https://dev.mysql.com/doc/relnotes/mysql/8.4/en/); [8.0 release notes](https://dev.mysql.com/doc/relnotes/mysql/8.0/en/); [release model](https://dev.mysql.com/doc/refman/8.4/en/mysql-releases.html) |
 | MariaDB | mariadb.com/docs as of the date; newest releases 10.6.28 (series end of life 2026-07-06), 10.11.19, 11.4.13, 11.8.9; log format read from the `mariadb-11.4.13` source tag | [MariaDB downloads REST API](https://downloads.mariadb.org/rest-api/mariadb/) |
 
 MySQL 9.x and MariaDB 12.x were not checked. On them, confirm any fact this skill relies on in their own manual.

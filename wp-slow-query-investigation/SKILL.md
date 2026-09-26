@@ -51,16 +51,17 @@ Related skills in this collection, for work outside this one: `wp-autoload-audit
    no approval. Everything else (`SET GLOBAL`, installing Query Monitor, constants in `wp-config.php`, `ANALYZE TABLE`,
    `ALTER TABLE`, `KILL`, settings, code) needs the owner's approval for that step, with its backup, check and undo
    stated first. One approval covers one step.
-2. Plain `EXPLAIN` does not run the statement; MySQL `EXPLAIN ANALYZE` and MariaDB `ANALYZE` do. Measure only
-   `SELECT` statements, and only on staging or a replica: MariaDB's `ANALYZE UPDATE` and `ANALYZE DELETE` make their
-   changes, and MySQL's `EXPLAIN ANALYZE` executes multi-table updates and deletes
-   ([references/explain.md](references/explain.md)).
+2. Plain `EXPLAIN` does not run the statement (MariaDB can still run a stored function called in it); MySQL
+   `EXPLAIN ANALYZE` and MariaDB `ANALYZE` do. Measure only `SELECT` statements, and only on staging or a replica:
+   MariaDB's `ANALYZE UPDATE` and `ANALYZE DELETE` make their changes, and MySQL's `EXPLAIN ANALYZE` executes
+   multi-table updates and deletes ([references/explain.md](references/explain.md)).
 3. No index goes to production untested. Test it on a copy, then add it at a quiet hour with a full backup, a short
    `lock_wait_timeout`, `ALGORITHM=INPLACE, LOCK=NONE`, and invisible (MySQL) where possible; watch for
    `Waiting for table metadata lock` and stop the build if statements pile up
    ([references/indexes.md](references/indexes.md)).
-4. Never drop or alter WordPress core, WooCommerce or plugin indexes or columns. Only indexes this process added (named
-   with the `sqi_` prefix) are removed, hidden first and dropped later.
+4. Never drop or alter WordPress core, WooCommerce or plugin indexes or columns. Only indexes this process added are
+   removed: its own (named with the `sqi_` prefix), hidden first and dropped later, and a missing core index it
+   restored, when that change is undone.
 5. Logs and query texts are personal data: the slow log and Query Monitor show literal values (emails, names, search
    terms), users and hosts. Read logs where they are, share only masked digests, keep exports and logs out of chats,
    tickets and repositories, and delete copies when the report is written.

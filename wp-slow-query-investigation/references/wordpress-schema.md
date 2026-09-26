@@ -2,7 +2,8 @@
 
 Read this for steps 3 and 5 of the procedure, and before proposing any index. Links point at the WordPress 7.1.2 tag.
 `scripts/query-checks.sql` prints the indexes that exist on the site; compare them with this table. A missing core
-index is a failed or partial database upgrade; an extra index was added by a plugin, a host or a person.
+index is a failed or partial database upgrade, except `type_status_author` before WordPress 6.9, which added it; an
+extra index was added by a plugin, a host or a person.
 
 ## Indexes WordPress 7.1.2 defines
 

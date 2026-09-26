@@ -227,11 +227,12 @@ WHERE table_schema = DATABASE()
 ORDER BY table_name, redundant_index_name;
 
 -- name: Running statements, 1 second or older, text masked (MySQL 8.x)
+-- Masking drops escaped backslashes and quotes (\\, \', \") first, so that every quoted value is found and replaced.
 SELECT ID AS id,
        COMMAND AS command,
        TIME AS seconds,
        STATE AS state,
-       LEFT(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(INFO, '''[^'']*''', '?'), '"[^"]*"', '?'), '[0-9]+', 'N'), 200) AS statement_masked
+       LEFT(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REPLACE(REPLACE(REPLACE(INFO, CHAR(92, 92 USING utf8mb4), ''), CHAR(92, 39 USING utf8mb4), ''), CHAR(92, 34 USING utf8mb4), ''), '''[^'']*''', '?'), '"[^"]*"', '?'), '[0-9]+', 'N'), 200) AS statement_masked
 FROM performance_schema.processlist
 WHERE COMMAND NOT IN ('Sleep', 'Daemon', 'Binlog Dump', 'Binlog Dump GTID')
   AND TIME >= 1
@@ -245,7 +246,7 @@ SELECT ID AS id,
        COMMAND AS command,
        ROUND(TIME_MS / 1000, 1) AS seconds,
        STATE AS state,
-       LEFT(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(INFO, '''[^'']*''', '?'), '"[^"]*"', '?'), '[0-9]+', 'N'), 200) AS statement_masked
+       LEFT(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REPLACE(REPLACE(REPLACE(INFO, CHAR(92, 92 USING utf8mb4), ''), CHAR(92, 39 USING utf8mb4), ''), CHAR(92, 34 USING utf8mb4), ''), '''[^'']*''', '?'), '"[^"]*"', '?'), '[0-9]+', 'N'), 200) AS statement_masked
 FROM information_schema.PROCESSLIST
 WHERE COMMAND NOT IN ('Sleep', 'Daemon', 'Binlog Dump')
   AND TIME_MS >= 1000
@@ -285,7 +286,7 @@ ORDER BY total_s DESC
 LIMIT 15;
 
 -- name: Slow log table, top statements by total time, text masked (MariaDB; only with log_output=TABLE and SELECT on mysql.slow_log)
-SELECT LEFT(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(CONVERT(sql_text USING utf8mb4), '''[^'']*''', '?'), '"[^"]*"', '?'), '[0-9]+', 'N'), 220) AS statement_masked,
+SELECT LEFT(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(sql_text USING utf8mb4), CHAR(92, 92 USING utf8mb4), ''), CHAR(92, 39 USING utf8mb4), ''), CHAR(92, 34 USING utf8mb4), ''), '''[^'']*''', '?'), '"[^"]*"', '?'), '[0-9]+', 'N'), 220) AS statement_masked,
        COUNT(*) AS executions,
        ROUND(SUM(HOUR(query_time) * 3600 + MINUTE(query_time) * 60 + SECOND(query_time) + MICROSECOND(query_time) / 1000000), 1) AS total_s,
        ROUND(MAX(HOUR(query_time) * 3600 + MINUTE(query_time) * 60 + SECOND(query_time) + MICROSECOND(query_time) / 1000000), 2) AS max_s,

@@ -15,8 +15,10 @@ linked below. Example values are synthetic.
   Source: [Change of Address tool](https://support.google.com/webmasters/answer/9370220?hl=en)
 - The redirect has to run before WordPress. An archived site answers visitors with HTTP 410
   ([`ms_site_check()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-load.php#L122)),
-  and `NOBLOGREDIRECT` only acts on 404s of the main site
-  ([`maybe_redirect_404()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-functions.php#L2207)).
+  and `NOBLOGREDIRECT` acts only on sites that do not exist (subdomain networks) and on 404s of the main site, not on
+  an archived site
+  ([`ms-load.php`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-load.php#L420-L434),
+  [`maybe_redirect_404()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-functions.php#L2207)).
   Put the rules in the server configuration, or in `.htaccess` above the `# BEGIN WordPress` block.
 - Media rules go before the general rule: a subsite's media path changes (`uploads/sites/3/` to `uploads/`, or the
   reverse), so a general rule would send media requests to a path that does not exist.

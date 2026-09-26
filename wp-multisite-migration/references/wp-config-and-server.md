@@ -27,9 +27,11 @@ case. Checked against WordPress 7.1.2 and the handbook pages below on 2026-09-26
 - `is_multisite()` returns `MULTISITE` when defined, otherwise true when `SUBDOMAIN_INSTALL`, `VHOST` or `SUNRISE`
   is defined.
   Source: [`is_multisite()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/load.php#L1448)
-- `NOBLOGREDIRECT` acts only on 404 responses of the main site, where `maybe_redirect_404()` sends the visitor to
-  its value (`%siteurl%` means the network home).
-  Source: [`maybe_redirect_404()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-functions.php#L2207)
+- `NOBLOGREDIRECT` acts in two places: on a subdomain network, a request for a site that does not exist goes to its
+  value instead of the signup form; and `maybe_redirect_404()` sends 404 responses of the main site there
+  (`%siteurl%` means the network home).
+  Sources: [`ms_load_current_site_and_network()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-load.php#L420-L434),
+  [`maybe_redirect_404()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-functions.php#L2207)
 - Switching a network between subdomain and subdirectory mode takes more than `SUBDOMAIN_INSTALL` and new rewrite
   rules; the handbook calls it an advanced operation. It is outside this skill.
   Source: [Switching network types](https://developer.wordpress.org/advanced-administration/multisite/administration/#switching-network-types)

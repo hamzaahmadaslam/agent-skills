@@ -111,11 +111,13 @@ IDs.
 bash scripts/user-conflicts.sh --standalone-path=/srv/shop --network-path=/srv/network
 ```
 
-It sorts the standalone users into four groups:
+It sorts the standalone users into five groups:
 
 - same email on the network: reuse that network account;
 - login taken on the network by another email: decide with the owner (rename one, or treat them as the same person);
 - login that multisite would refuse: pick a new login;
+- email that multisite would refuse (a banned domain, or one outside `limited_email_domains`): decide with the owner
+  (another address, or a change to those network settings);
 - new: create the account.
 
 Multisite applies its signup rules when an account is created through WP-CLI: `wp user create` and
@@ -145,6 +147,8 @@ wp --path=/srv/network --url="$FINAL" user create newlogin person@example.net --
   `wp user create` refuses a role that the site does not define
   ([User_Command.php](https://github.com/wp-cli/entity-command/blob/v2.8.4/src/User_Command.php#L1304)).
 - Record every pair in a file, one line per user: `old_id,new_id`. Existing network accounts go in the same file.
+  Write the IDs of the accounts you create to a second file as well, one per line: a rollback deletes only those, and
+  the mapping file cannot tell them from reused accounts.
 
 ### Password hashes
 
@@ -171,10 +175,13 @@ already have a network password.
 ### 3. WRITE, staging copy: renumber authors and user references
 
 Back up the staging database first: `wp --path=/srv/shop-stage db export "$BK/stage-before-remap.sql"`. This runs
-before the staging tables are renamed, so they still carry the standalone prefix (`wp_` here). Save the block as
-`remap.sql`, run the two previews first, then the whole file with `wp --path=/srv/shop-stage db query < remap.sql`.
+before the staging tables are renamed, so they still carry the standalone prefix (`wp_` here). Save the block as two
+files, split at the `remap-update.sql` comment. `wp --path=/srv/shop-stage db query < remap-map.sql` creates the
+mapping table and prints the two previews; go on only when the first returns 0 and the second lists the changes you
+expect. Then run `wp --path=/srv/shop-stage db query < remap-update.sql`.
 
 ```sql
+-- remap-map.sql: the mapping and the two previews
 CREATE TABLE migration_user_map (old_id BIGINT UNSIGNED PRIMARY KEY, new_id BIGINT UNSIGNED NOT NULL);
 INSERT INTO migration_user_map (old_id, new_id) VALUES (1, 12), (2, 57), (5, 58);
 
@@ -187,6 +194,7 @@ WHERE p.post_author <> 0 AND m.old_id IS NULL;
 SELECT p.post_author, m.new_id, COUNT(*) FROM wp_posts p
 JOIN migration_user_map m ON m.old_id = p.post_author GROUP BY p.post_author, m.new_id;
 
+-- remap-update.sql: only after both previews look right
 UPDATE wp_posts p JOIN migration_user_map m ON m.old_id = p.post_author SET p.post_author = m.new_id;
 UPDATE wp_comments c JOIN migration_user_map m ON m.old_id = c.user_id SET c.user_id = m.new_id;
 UPDATE wp_links l JOIN migration_user_map m ON m.old_id = l.link_owner SET l.link_owner = m.new_id;

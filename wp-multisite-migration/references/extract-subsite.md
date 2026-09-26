@@ -271,7 +271,8 @@ Rehearse steps 2 to 9 first. The production run:
   ([`_wp_upload_dir()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/functions.php#L2467)).
 - If the address changes, a pair such as `//network.example/` also rewrites links to subdirectory sites. Exclude
   them with a regular expression and check each change with `--dry-run --log`:
-  `wp search-replace '//network\.example/(?!(?:blog-b|blog-c)/)' '//new.example/' --regex --all-tables-with-prefix --skip-columns=guid --dry-run --log`.
+  `wp --path="$NEW" search-replace '//network\.example/(?!(?:blog-b|blog-c)/)' '//new.example/' --regex --all-tables-with-prefix --skip-columns=guid --dry-run --log`
+  (on the new install only: on the network, `--all-tables-with-prefix` for blog_id 1 selects every table).
 - Subdirectory networks may store `/blog/` at the start of the main site's permalink structure
   ([`options-permalink.php`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-admin/options-permalink.php#L92)).
   Keep it to keep post URLs, or change it and add redirects.

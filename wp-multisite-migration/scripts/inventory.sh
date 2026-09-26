@@ -6,8 +6,8 @@
 # to files, flushes no cache, and skips update checks, so it makes no request to wordpress.org.
 # Plugins and themes are not loaded (--skip-plugins --skip-themes); must-use plugins still load.
 # It prints administrator logins, never email addresses, password hashes or database credentials.
-# Loading WordPress through WP-CLI works like a page view: if WP-Cron tasks are due, core may start
-# them. Define DISABLE_WP_CRON in wp-config.php on copies that must stay quiet.
+# WordPress loads with WP-Cron spawning turned off (a spawn writes the doing_cron lock and sends a
+# loopback request) and without WP-CLI's own update check.
 #
 # Usage:
 #   bash inventory.sh --path=/srv/network --url=https://network.example/blog-a/   # one subsite
@@ -44,7 +44,11 @@ if ! command -v wp >/dev/null 2>&1; then
   exit 1
 fi
 
-WP_ARGS=(--skip-plugins --skip-themes)
+# Keep the inventory read-only: no WP-CLI update check, and no WP-Cron spawn while WordPress loads
+# (WP-CLI removes wp_cron only when ALTERNATE_WP_CRON is set).
+export WP_CLI_DISABLE_AUTO_CHECK_UPDATE=1
+NO_SPAWN='--exec=WP_CLI::add_wp_hook( "init", static function () { remove_action( "init", "wp_cron" ); }, 0 );'
+WP_ARGS=(--skip-plugins --skip-themes "$NO_SPAWN")
 [ -n "$WP_PATH" ] && WP_ARGS+=("--path=$WP_PATH")
 [ -n "$SITE_URL" ] && WP_ARGS+=("--url=$SITE_URL")
 

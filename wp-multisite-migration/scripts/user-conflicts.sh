@@ -4,8 +4,8 @@
 # Read-only. The script runs `wp user list` on both installs and `wp eval` to read three network
 # options (illegal_names, limited_email_domains, banned_email_domains). It changes nothing.
 # Emails are compared in a temporary folder that is deleted on exit; the report prints user IDs
-# and logins only, never emails. Loading WordPress through WP-CLI works like a page view: if
-# WP-Cron tasks are due, core may start them. Define DISABLE_WP_CRON on copies that must stay quiet.
+# and logins only, never emails. WordPress loads with WP-Cron spawning turned off (a spawn writes the
+# doing_cron lock and sends a loopback request) and without WP-CLI's own update check.
 #
 # Usage:
 #   bash user-conflicts.sh --standalone-path=/srv/shop --network-path=/srv/network
@@ -50,20 +50,25 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 chmod 700 "$TMP"
 
-wp --path="$SA_PATH" --skip-plugins --skip-themes user list \
+# Keep the comparison read-only: no WP-CLI update check, and no WP-Cron spawn while WordPress loads
+# (WP-CLI removes wp_cron only when ALTERNATE_WP_CRON is set).
+export WP_CLI_DISABLE_AUTO_CHECK_UPDATE=1
+NO_SPAWN='--exec=WP_CLI::add_wp_hook( "init", static function () { remove_action( "init", "wp_cron" ); }, 0 );'
+
+wp --path="$SA_PATH" --skip-plugins --skip-themes "$NO_SPAWN" user list \
   --fields=ID,user_login,user_email --format=csv > "$TMP/standalone.csv"
-wp --path="$NET_PATH" --skip-plugins --skip-themes user list --network \
+wp --path="$NET_PATH" --skip-plugins --skip-themes "$NO_SPAWN" user list --network \
   --fields=ID,user_login,user_email --format=csv > "$TMP/network.csv"
 
 # One value per line. When illegal_names is not set, core falls back to this default list.
-wp --path="$NET_PATH" --skip-plugins --skip-themes eval '
+wp --path="$NET_PATH" --skip-plugins --skip-themes "$NO_SPAWN" eval '
 $names = get_site_option( "illegal_names" );
 if ( ! is_array( $names ) ) { $names = array( "www", "web", "root", "admin", "main", "invite", "administrator" ); }
 echo implode( PHP_EOL, $names ), PHP_EOL;' > "$TMP/illegal.txt"
-wp --path="$NET_PATH" --skip-plugins --skip-themes eval '
+wp --path="$NET_PATH" --skip-plugins --skip-themes "$NO_SPAWN" eval '
 $d = get_site_option( "limited_email_domains" );
 if ( is_array( $d ) ) { echo implode( PHP_EOL, $d ), PHP_EOL; }' > "$TMP/limited.txt"
-wp --path="$NET_PATH" --skip-plugins --skip-themes eval '
+wp --path="$NET_PATH" --skip-plugins --skip-themes "$NO_SPAWN" eval '
 $d = get_site_option( "banned_email_domains" );
 if ( $d && ! is_array( $d ) ) { $d = explode( "\n", $d ); }
 if ( is_array( $d ) ) { echo implode( PHP_EOL, $d ), PHP_EOL; }' > "$TMP/banned.txt"

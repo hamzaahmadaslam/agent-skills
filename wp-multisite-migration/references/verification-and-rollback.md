@@ -122,8 +122,9 @@ Every rollback step is a write: back up the current state first (`wp db export`)
 - Direction B, targeted (preferred):
   1. `wp --path="$NET" site delete 7` drops the site's tables, deletes its uploads folder and removes its members
      ([`wp_uninitialize_site()`](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/ms-site.php#L784)).
-  2. For each account created for the move (from the mapping file): `wp --path="$NET" site list --site_user=<id>`
-     must list no site; then `wp --path="$NET" user delete <id> --network`.
+  2. For each account created for the move (the IDs in `users-created.txt`, never the reused accounts in the mapping
+     file): `wp --path="$NET" site list --site_user=<id>` must list no site; then
+     `wp --path="$NET" user delete <id> --network`.
   3. Remove theme and plugin folders that were added only for this site.
   4. Verify: site count, `SELECT COUNT(*) FROM wp_users` and `active_sitewide_plugins` equal the numbers from before
      the move.

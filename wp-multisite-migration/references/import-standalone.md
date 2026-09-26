@@ -65,6 +65,7 @@ is in [verification-and-rollback.md](verification-and-rollback.md).
 rsync -a "$SRC/" "$STAGE/"
 wp --path="$STAGE" config set DB_NAME shop_stage          # a new, empty database; never the live one
 wp --path="$STAGE" config set DISABLE_WP_CRON true --raw  # the copy must not run scheduled tasks
+wp --path="$STAGE" config get DB_NAME                     # must print shop_stage: stop here if it does not
 wp --path="$STAGE" db create
 wp --path="$STAGE" db import "$BK/standalone-full.sql"
 bash scripts/table-counts.sh --path="$SRC" --prefix=wp_ > "$BK/counts-src.txt"
@@ -72,8 +73,9 @@ bash scripts/table-counts.sh --path="$STAGE" --prefix=wp_ > "$BK/counts-stage.tx
 diff "$BK/counts-src.txt" "$BK/counts-stage.txt"          # no output
 ```
 
-Check `wp --path="$STAGE" config get DB_NAME` before the import. The staging copy is not served to visitors, and
-`DISABLE_WP_CRON` stops it from running scheduled tasks
+Run `db create` and `db import` only after `config get DB_NAME` printed the new name: the dump drops and recreates
+every table it holds, so an import into the live database would replace the live site's tables. The staging copy
+is not served to visitors, and `DISABLE_WP_CRON` stops it from running scheduled tasks
 ([wp-config.php, Disable Cron](https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#disable-cron-and-cron-timeout)).
 A difference in the `diff` means the live site changed after the dump; in the production run, take the dump after
 the content freeze starts.
@@ -128,7 +130,8 @@ wp --path="$NET" site list --site__in="$N" --fields=blog_id,url,domain,path,arch
 ## 5. WRITE, network: accounts
 
 Follow [users-and-roles.md](users-and-roles.md), direction B, steps 1 and 2: reuse network accounts with the same
-email, create the others with `--role=subscriber` on the new site, and write `$BK/user-map.csv` (`old_id,new_id`).
+email, create the others with `--role=subscriber` on the new site, and write `$BK/user-map.csv` (`old_id,new_id`)
+and `$BK/users-created.txt` (the new ID of each account you created, one per line; a rollback deletes only these).
 
 ## 6. WRITE, staging copy: prepare the site's tables
 

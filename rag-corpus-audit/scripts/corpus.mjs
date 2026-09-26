@@ -138,8 +138,11 @@ export function listCorpusFiles(root) {
   return found.sort();
 }
 
-/** Expands the positional inputs (files and folders) into [{ full, display }]. */
-export function resolveInputs(inputs) {
+/**
+ * Expands the positional inputs (files and folders) into [{ full, display }]. `fileExtensions` adds extensions that a
+ * helper accepts for files named on the command line; folders are still read for the corpus extensions only.
+ */
+export function resolveInputs(inputs, fileExtensions = []) {
   if (!inputs.length) throw new UsageError("Name at least one folder or file.");
   const files = [];
   for (const input of inputs) {
@@ -155,8 +158,8 @@ export function resolveInputs(inputs) {
       for (const full of list) files.push({ full, display: posix(path.relative(process.cwd(), full)) || full });
     } else {
       const ext = path.extname(input).toLowerCase();
-      if (!TEXT_EXTENSIONS.includes(ext) && !JSONL_EXTENSIONS.includes(ext)) {
-        throw new InputError(`${input} is not a supported file (${[...TEXT_EXTENSIONS, ...JSONL_EXTENSIONS].join(", ")}).`);
+      if (!TEXT_EXTENSIONS.includes(ext) && !JSONL_EXTENSIONS.includes(ext) && !fileExtensions.includes(ext)) {
+        throw new InputError(`${input} is not a supported file (${[...TEXT_EXTENSIONS, ...JSONL_EXTENSIONS, ...fileExtensions].join(", ")}).`);
       }
       files.push({ full: input, display: posix(path.relative(process.cwd(), input)) || input });
     }
@@ -334,8 +337,9 @@ function headingsFromMeta(meta) {
 
 /** Metadata keys (lower case) that fill each role; JSONL "metadata.x" keys are flattened to "x". */
 export const META_ROLES = {
-  id: ["id", "chunk_id", "_id", "uuid", "doc_id", "document_id"],
-  source: ["source", "url", "source_url", "path", "file_name", "filename", "file", "link", "uri"],
+  id: ["id", "chunk_id", "_id", "uuid"],
+  // doc_id and document_id name the document a chunk came from, as the JSONL loader reads them, not the chunk.
+  source: ["source", "url", "source_url", "path", "file_name", "filename", "file", "link", "uri", "doc_id", "document_id"],
   title: ["title", "doc_title", "document_title", "page_title"],
   section: ["heading_path", "headings", "section", "heading", "breadcrumbs"],
   created: ["created", "created_at", "date_created", "datecreated", "published", "published_at", "date_published", "datepublished", "issued", "date", "article:published_time"],

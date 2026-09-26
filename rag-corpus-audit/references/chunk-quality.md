@@ -28,10 +28,10 @@ imitates common chunkers.
   missing time context ([Choi et al. 2021, section 5.2.2](https://arxiv.org/abs/2102.05169)). A chunk that says
   "currently" needs its date as much as a chunk that says "it" needs its subject.
 
-`scripts/chunk-lint.mjs` flags the patterns behind these edits: chunks (other than a document's first) that open with
-a pronoun, demonstrative or discourse marker; references outside the chunk ("as shown above", "the following
-steps", "repeat step 2"); chunks that end on a colon; chunks that start at item 3 of a numbered list; and chunks cut
-in the middle of a sentence. They are candidates. Read them, or give them to chunk-standalone (below).
+`scripts/chunk-lint.mjs` flags the patterns behind these edits: chunks (other than a document's first) that open with a
+pronoun, demonstrative or discourse marker; references outside the chunk ("as shown above", "the following steps",
+"repeat step 2"); chunks that end on a colon; chunks that start partway through a numbered list (at item 2 or later);
+and chunks cut in the middle of a sentence. They are candidates. Read them, or give them to chunk-standalone (below).
 
 ## The subject belongs in every chunk
 

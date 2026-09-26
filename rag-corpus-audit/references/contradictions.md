@@ -68,5 +68,5 @@ least `--min-overlap`, default 0.5) and that differ in one of three ways: a quan
 same currency, durations converted to one unit, sizes, percentages, counts of the same noun, years), a negation, or
 an opposite word (required and optional, free and paid, enabled and disabled, always and never, among others). Table
 rows are read with their header. It does not understand meaning: it misses conflicts worded differently ("two weeks"
-against "fourteen days" is caught only when both use digits), and it pairs sentences that differ only in scope. A
+against "thirty days" is caught only when both use digits), and it pairs sentences that differ only in scope. A
 person reads every pair.

@@ -1,6 +1,6 @@
 # Priorities and the fix list
 
-Read this for steps 9 and 10 of the procedure. The priority levels are this skill's method, built on the evidence in
+Read this for steps 9 to 11 of the procedure. The priority levels are this skill's method, built on the evidence in
 [evidence.md](evidence.md); adjust them with the owner when their risks differ.
 
 ## Priority levels

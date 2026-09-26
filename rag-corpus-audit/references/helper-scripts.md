@@ -7,7 +7,8 @@ make no network requests. Every script prints its options with `--help`.
 ## Input
 
 - Folders: every `.md`, `.markdown`, `.mdx`, `.txt`, `.html`, `.htm`, `.jsonl` and `.ndjson` file below them, except
-  inside `node_modules` and folders whose names start with a dot.
+  inside `node_modules` and folders whose names start with a dot. `sensitive-scan.mjs` also reads a `.csv` file
+  named on the command line, such as a question log, as plain lines.
 - Markdown front matter (flat `key: value` pairs and lists) and HTML `<title>`, `lang` and `<meta>` tags are read as
   document metadata. HTML is turned into text with the same line numbers; headings keep a `#` marker.
 - JSONL: one chunk per line. The text is read from `text`, `page_content`, `content`, `chunk`, `body` or
@@ -16,7 +17,9 @@ make no network requests. Every script prints its options with `--help`.
   field are skipped with a warning.
 - Files are split into chunks with `--by=heading` (default: a new chunk at every `#` heading outside code blocks),
   `--by=paragraph` or `--by=tokens=N`. JSONL chunks are used as exported. For plain text files, use `paragraph` or
-  `tokens=N`: with `heading`, a text file with no `#` lines is one chunk.
+  `tokens=N`: with `heading`, a text file with no `#` lines is one chunk. `--by` is an option of the chunk-based
+  helpers (`corpus-inventory`, `chunk-lint`, `near-duplicates`, `question-coverage`); the other three read lines and
+  sentences, so the split does not change what they find.
 - Token counts are estimates at four characters per token. The word-based checks (openings, dates, stop words,
   opposites) are written for English.
 

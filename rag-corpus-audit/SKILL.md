@@ -1,6 +1,6 @@
 ---
 name: rag-corpus-audit
-description: "Audit a knowledge base before it is indexed for retrieval-augmented generation (RAG), or before a re-index, and produce a prioritized report with a fix list. Checks the chunks the retriever will see (chunks that cannot stand alone, split tables and code blocks, size outliers, boilerplate, exact and near-duplicates), coverage against real user questions, contradictions between documents, stale and time-sensitive claims, personal data, secrets and hidden instructions that must not be indexed, and the metadata needed for access filters, citations and erasure. Read-only: seven Node.js helpers with no dependencies scan Markdown, text, HTML and JSONL chunk exports on the local machine and never print secret or personal values. Use when building or refreshing a RAG index, when a RAG assistant gives wrong, outdated or contradictory answers, or before adding a new document source."
+description: "Audit a knowledge base before it is indexed for retrieval-augmented generation (RAG), or before a re-index, and produce a prioritized report with a fix list. Checks the chunks the retriever will see (chunks that cannot stand alone, split tables and code blocks, size outliers, boilerplate, exact and near-duplicates), coverage against real user questions, contradictions between documents, stale and time-sensitive claims, personal data, secrets and hidden instructions that must not be indexed, and the metadata needed for access filters, citations and erasure. Read-only: seven Node.js helpers with no dependencies scan Markdown, text, HTML and JSONL chunk exports on the local machine; the sensitive-data scan never prints secret or personal values. Use when building or refreshing a RAG index, when a RAG assistant gives wrong, outdated or contradictory answers, or before adding a new document source."
 license: MIT
 compatibility: "The helper scripts need Node.js 20 or later, no packages and no network. They read Markdown, plain text, HTML and JSONL chunk exports; export PDFs, Office files and wiki pages to text or JSONL with the pipeline's own extractor first. Word-based checks assume English. Optional: chunk-standalone for a model-based check of standalone chunks, which needs a TypeSafe API key and the owner's approval."
 metadata:
@@ -94,8 +94,9 @@ and whether chunk-standalone may be used. Write the answers at the top of the re
 ### 1. Get the text the retriever sees
 
 Export the pipeline's chunks to JSONL (text plus id, source, title, dates and access fields). If that is not
-possible, run the helpers on the extracted text with `--by` set to match the chunker (`heading`, `paragraph` or
-`tokens=N`), and say in the report that the chunking was imitated. For HTML sources, audit both the raw HTML (the
+possible, run the helpers on the extracted text, the chunk-based ones (`corpus-inventory`, `chunk-lint`,
+`near-duplicates`, `question-coverage`) with `--by` set to match the chunker (`heading`, `paragraph` or `tokens=N`),
+and say in the report that the chunking was imitated. For HTML sources, audit both the raw HTML (the
 sensitive scan needs the markup) and the extracted text.
 
 ### 2. Inventory and metadata

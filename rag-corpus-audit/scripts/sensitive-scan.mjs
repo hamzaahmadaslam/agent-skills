@@ -8,10 +8,11 @@
 //     controls and Unicode tag characters (their hidden ASCII text is decoded and shown);
 //   - instruction-like text aimed at a model ("ignore previous instructions", "if you are an AI assistant").
 //
-// It reads raw files (HTML as markup, JSONL line by line with every string field) and prints a report. It writes
-// nothing and makes no network requests. It never prints a secret or personal value: findings show the file, line,
-// column and the line with every value replaced by [TYPE]. Reserved example domains and documentation addresses
-// (RFC 2606, RFC 5737, RFC 3849) are counted as placeholders and not listed unless you ask.
+// It reads raw files (HTML as markup, JSONL line by line with every string field, and a .csv question log named on
+// the command line as plain lines) and prints a report. It writes nothing and makes no network requests. It never
+// prints a secret or personal value: findings show the file, line, column and the line with every value replaced by
+// [TYPE]. Reserved example domains and documentation addresses (RFC 2606, RFC 5737, RFC 3849) are counted as
+// placeholders and not listed unless you ask.
 //
 // A format scan does not find names, street addresses, health details or confidential business text in prose:
 // read a sample of documents for those.
@@ -113,10 +114,19 @@ function ipv6Kind(ip) {
 
 const before = (line, index, n) => line.slice(Math.max(0, index - n), index);
 
-/** The span of a capture group inside a match, so only the value is redacted and the name stays readable. */
+/**
+ * The span of a capture group inside a match (the pattern has the d flag), so only the value is redacted and the name
+ * stays readable. A quoted value is covered up to its closing quote, so a passphrase with spaces is not left half
+ * visible; what counts as a secret does not change.
+ */
 function valueSpan(m, group) {
-  const offset = m[0].lastIndexOf(m[group]);
-  return [m.index + offset, m.index + offset + m[group].length];
+  let [start, end] = m.indices[group];
+  const quote = m.input[start - 1];
+  if (quote === '"' || quote === "'" || quote === "`") {
+    const close = m.input.indexOf(quote, end);
+    if (close > end) end = close;
+  }
+  return [start, end];
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -130,7 +140,7 @@ const DETECTORS = [
     type: "password in URL",
     tag: "PASSWORD",
     span: (m) => valueSpan(m, 1),
-    re: /\b[a-z][a-z0-9+.-]{1,20}:\/\/[^\s:@/?#]+:([^\s@/?#]+)@[^\s/?#]+/gi,
+    re: /\b[a-z][a-z0-9+.-]{1,20}:\/\/[^\s:@/?#]+:([^\s@/?#]+)@[^\s/?#]+/dgi,
     check: (m) => (PLACEHOLDER_VALUE.test(decodeURIComponentSafe(m[1])) ? { placeholder: true } : { confidence: "high" }),
   },
   { category: "secret", type: "AWS access key ID", tag: "AWS KEY ID", re: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, check: () => ({ confidence: "high" }) },
@@ -141,7 +151,7 @@ const DETECTORS = [
     type: "secret assignment",
     tag: "SECRET",
     span: (m) => valueSpan(m, 1),
-    re: /(?<![A-Za-z0-9_])(?:[A-Za-z0-9]+[_.-])*(?:password|passwd|pwd|pass|passcode|passphrase|credentials?|secret|client[_-]?secret|api[_-]?key|apikey|access[_-]?key|secret[_-]?key|private[_-]?key|auth[_-]?token|access[_-]?token|refresh[_-]?token|token)(?:[_.-][A-Za-z0-9]+)*["']?\s*(?:=|:|=>)\s*["'`]?([^\s"'`,;<>]{6,})/gi,
+    re: /(?<![A-Za-z0-9_])(?:[A-Za-z0-9]+[_.-])*(?:password|passwd|pwd|pass|passcode|passphrase|credentials?|secret|client[_-]?secret|api[_-]?key|apikey|access[_-]?key|secret[_-]?key|private[_-]?key|auth[_-]?token|access[_-]?token|refresh[_-]?token|token)(?:[_.-][A-Za-z0-9]+)*["']?\s*(?:=|:|=>)\s*["'`]?([^\s"'`,;<>]{6,})/dgi,
     check: (m) => {
       const value = m[1];
       if (PLACEHOLDER_VALUE.test(value) || CODE_REFERENCE.test(value)) return null;
@@ -270,8 +280,8 @@ export function scanLine(line, extra = []) {
       if (!free(s, e)) continue;
       const verdict = d.check ? d.check(m, line) : { confidence: "medium" };
       if (!verdict) continue;
-      taken.push([s, e]);
       const [rs, re] = d.span ? d.span(m) : [s, e];
+      taken.push([Math.min(s, rs), Math.max(e, re)]);
       findings.push({ category: d.category, type: d.type, tag: d.tag, column: rs + 1, start: rs, end: re, ...verdict });
     }
   }
@@ -296,7 +306,7 @@ export function scanLine(line, extra = []) {
       const cp = ch.codePointAt(0) - 0xe0000;
       return cp >= 0x20 && cp <= 0x7e ? String.fromCharCode(cp) : "";
     });
-    findings.push({ category: "hidden", type: "Unicode tag characters", column: m.index + 1, start: m.index, end: m.index + m[0].length, confidence: "high", note: `hidden text "${truncate(redactText(decoded.join("")), 80)}"` });
+    findings.push({ category: "hidden", type: "Unicode tag characters", column: m.index + 1, start: m.index, end: m.index + m[0].length, confidence: "high", note: `hidden text "${truncate(redactText(decoded.join(""), extra), 80)}"` });
   }
   const zw = [...line.matchAll(ZERO_WIDTH)];
   if (zw.length) findings.push({ category: "hidden", type: "zero-width character", column: zw[0].index + 1, start: zw[0].index, end: zw[0].index + 1, confidence: "medium", note: `${zw.length} on this line` });
@@ -345,8 +355,8 @@ export function redact(line, findings, focus) {
 }
 
 /** A text with its secret and personal values replaced by tags, for notes such as comment contents. */
-export function redactText(text) {
-  return redact(text, scanLine(text), null);
+export function redactText(text, extra = []) {
+  return redact(text, scanLine(text, extra), null);
 }
 
 /** HTML comments anywhere in a text (they can span lines). */
@@ -372,14 +382,15 @@ function parsePatterns(list) {
     } catch (err) {
       throw new UsageError(`--pattern "${name}" is not a valid regular expression: ${err.message}`);
     }
-    return { category: "personal", type: name, re, check: () => ({ confidence: "medium", note: "your pattern" }) };
+    return { category: "personal", type: name, tag: name.toUpperCase(), re, check: () => ({ confidence: "medium", note: "your pattern" }) };
   });
 }
 
 /** Scans every file. Returns { files, lines, findings, placeholders }. */
 export function scanFiles(inputs, opts) {
   const extra = parsePatterns(opts.pattern);
-  const files = resolveInputs(inputs);
+  // A question log exported as CSV (the format question-coverage.mjs reads) can be scanned too, when named.
+  const files = resolveInputs(inputs, [".csv"]);
   const findings = [];
   let placeholders = 0;
   let lineCount = 0;
@@ -423,7 +434,7 @@ export function scanFiles(inputs, opts) {
           const sublines = value.split("\n");
           sublines.forEach((sub, k) => record({ file: display, line: i + 1, id, field, subline: sublines.length > 1 ? k + 1 : undefined }, sub, scanLine(sub, extra)));
           for (const c of htmlComments(value)) {
-            findings.push({ file: display, line: i + 1, id, field, category: "hidden", type: "HTML comment", confidence: "medium", column: c.column, note: `"${truncate(redactText(c.content), 80)}"` });
+            findings.push({ file: display, line: i + 1, id, field, category: "hidden", type: "HTML comment", confidence: "medium", column: c.column, note: `"${truncate(redactText(c.content, extra), 80)}"` });
           }
         }
       });
@@ -436,7 +447,7 @@ export function scanFiles(inputs, opts) {
       record({ file: display, line: i + 1 }, line, scanLine(line, extra));
     });
     for (const c of htmlComments(text)) {
-      findings.push({ file: display, line: c.line, category: "hidden", type: "HTML comment", confidence: "medium", column: c.column, note: `"${truncate(redactText(c.content), 80)}"` });
+      findings.push({ file: display, line: c.line, category: "hidden", type: "HTML comment", confidence: "medium", column: c.column, note: `"${truncate(redactText(c.content, extra), 80)}"` });
     }
   }
   const rank = { high: 0, medium: 1, low: 2, placeholder: 3 };

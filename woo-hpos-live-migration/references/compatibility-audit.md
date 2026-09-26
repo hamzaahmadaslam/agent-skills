@@ -15,8 +15,12 @@ links point at the WooCommerce 11.1.2 tag.
   The filter `woocommerce_plugins_are_incompatible_with_feature_by_default` (9.2.0) can flip that default
   ([FeaturesController.php L900-L921](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Internal/Features/FeaturesController.php#L900-L921));
   using it to get past the check hides the problem instead of fixing it.
-- Only "WooCommerce-aware" plugins are checked: plugins whose header has a non-empty `WC tested up to`
+- A plugin that declares nothing is counted only when it is "WooCommerce-aware": its header has a non-empty
+  `WC tested up to`
   ([PluginUtil.php L144-L148](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Utilities/PluginUtil.php#L144-L148)).
+  A declaration counts from any active plugin, aware or not, so a plugin without that header that declares itself
+  incompatible still blocks the switch
+  ([FeaturesController.php L1189-L1211](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Internal/Features/FeaturesController.php#L1189-L1211)).
   The recipe book says the same: WooCommerce shows compatibility information only for extensions that declare
   `WC tested up to` ([recipe book](https://developer.woocommerce.com/docs/features/orders/high-performance-order-storage/recipe-book/)).
 - The list comes from `get_plugins()` ([PluginUtil.php L97-L124](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Utilities/PluginUtil.php#L97-L124)),
@@ -27,7 +31,7 @@ links point at the WooCommerce 11.1.2 tag.
 - Never checked, so audit them by hand or with `scripts/scan-code.sh`:
   - the active theme and its parent theme;
   - must-use plugins and drop-ins;
-  - plugins without a `WC tested up to` header (site-specific plugins often lack it);
+  - plugins without a `WC tested up to` header that declare nothing (site-specific plugins often lack both);
   - PHP stored in the database by snippet plugins (not files, so a file scan misses it; export the snippets first);
   - systems outside WordPress that read the database directly, such as data warehouses, shipping, accounting or ERP
     connectors. The large-store guide asks you to confirm they do not read the posts tables before moving on

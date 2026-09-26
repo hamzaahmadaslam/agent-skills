@@ -5,7 +5,8 @@
 #
 # Columns:
 #   wc_aware     yes when the main plugin file has a "WC tested up to" header. WooCommerce's own compatibility check
-#                only looks at those plugins; themes, must-use plugins and drop-ins are never checked by WooCommerce.
+#                counts a plugin that declares nothing only when it has that header; themes, must-use plugins and
+#                drop-ins are never checked by WooCommerce.
 #   declaration  what the code declares for HPOS (feature id custom_order_tables) through
 #                FeaturesUtil::declare_compatibility: compatible, incompatible, found (value not read), other features
 #                only, or none.
@@ -64,7 +65,12 @@ count_lines() {
 	php_grep "$2" -hE -e "$1" | awk 'END { print NR + 0 }'
 }
 
-# yes / no for a "WC tested up to" header in the main plugin file (WordPress reads headers from the first 8 KB).
+# Whether a PHP file has a "Plugin Name" header (WordPress reads headers from the first 8 KB).
+has_plugin_header() {
+	head -c 8192 "$1" | grep -Eiq '^[[:space:]]*(<\?php)?[[:space:]/*#@]*Plugin Name:'
+}
+
+# yes / no for a "WC tested up to" header in the main plugin file.
 wc_aware() {
 	local target="$1" file
 	if [ -f "$target" ]; then
@@ -73,7 +79,7 @@ wc_aware() {
 	fi
 	for file in "$target"/*.php; do
 		[ -f "$file" ] || continue
-		if head -c 8192 "$file" | grep -Eiq '^[[:space:]]*(<\?php)?[[:space:]/*#@]*Plugin Name:'; then
+		if has_plugin_header "$file"; then
 			if head -c 8192 "$file" | grep -Eiq 'WC tested up to:[[:space:]]*[^[:space:]]'; then echo yes; else echo no; fi
 			return
 		fi
@@ -140,7 +146,8 @@ for target in "$CONTENT_DIR"/plugins/*; do
 			continue
 			;;
 	esac
-	if [ -d "$target" ] || [ "${target##*.}" = php ]; then
+	# A single file is a plugin only with a Plugin Name header, as in WordPress (index.php files are not).
+	if [ -d "$target" ] || { [ "${target##*.}" = php ] && has_plugin_header "$target"; }; then
 		row plugin "$target"
 	fi
 done
@@ -152,9 +159,15 @@ for target in "$CONTENT_DIR"/mu-plugins/*; do
 	fi
 done
 
+# Drop-ins are the file names WordPress loads from wp-content (_get_dropins() in wp-admin/includes/plugin.php).
 for target in "$CONTENT_DIR"/*.php; do
 	[ -f "$target" ] || continue
-	row drop-in "$target"
+	case "${target##*/}" in
+		advanced-cache.php | db.php | db-error.php | install.php | maintenance.php | object-cache.php | php-error.php | \
+			fatal-error-handler.php | sunrise.php | blog-deleted.php | blog-inactive.php | blog-suspended.php)
+			row drop-in "$target"
+			;;
+	esac
 done
 
 for target in "$CONTENT_DIR"/themes/*; do

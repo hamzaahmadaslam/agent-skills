@@ -90,10 +90,12 @@ count, whether WP-Cron runs (background sync depends on it or on admin traffic),
 
 - `wp wc hpos compatibility-info --include-inactive --display-filenames` (9.2.0+) lists WooCommerce-aware plugins as
   compatible, incompatible or uncertain. For HPOS, uncertain counts as incompatible and blocks the switch.
-- WooCommerce checks only plugins with a `WC tested up to` header. Themes, must-use plugins, drop-ins, site plugins
-  without that header, snippets stored in the database, and outside systems that read the database are never checked.
-- `bash scripts/scan-code.sh /path/to/wp-content` lists, per component, the header, the HPOS declaration and the lines
-  that match WooCommerce's audit patterns (direct post and post meta access, `shop_order`, order admin hooks).
+- WooCommerce counts a plugin that declares nothing only if it has a `WC tested up to` header. Themes, must-use
+  plugins, drop-ins, site plugins with neither, snippets stored in the database, and outside systems that read the
+  database are never checked.
+- `bash scripts/scan-code.sh /path/to/wp-content` lists, per component, the header, the HPOS declaration and how many
+  lines match WooCommerce's audit patterns (direct post and post meta access, `shop_order`, order admin hooks);
+  `--details` also prints the matching lines that mention "order".
 - Ask the user about database-stored snippets, the Legacy REST API, and systems such as warehouses, ERP, shipping or
   accounting connectors that read `wp_posts` or `wp_postmeta` directly.
 - Record a decision for every component: update, replace, fix and declare, remove, or accept after testing.
@@ -105,7 +107,7 @@ step 3 while any component lacks a decision.
 
 - Copy production to staging, with outgoing email and live payment processing turned off there.
 - Run steps 3 to 8 on staging and time `wp wc hpos sync`. WooCommerce's own test store with 9 million orders took about
-  a week.
+  a week (`references/cli-commands.md`).
 - Test with compatibility mode on, then again with it off: checkout with every payment method, refunds, subscription
   renewals if present, the store's own critical flows, order search, reports and exports. The sync-off pass is the one
   that exposes code reading `wp_posts`.
@@ -116,7 +118,8 @@ step 3 while any component lacks a decision.
 - Backup: full database backup, finished before this step (it may create tables, and a `--single-transaction` dump
   must not overlap DDL), written outside the web root because it holds customer data:
   `wp db export /path/outside/webroot/hpos-1-before-sync.sql --single-transaction`.
-- Command: `wp wc hpos compatibility-mode enable` (9.1.0+), or tick "Enable compatibility mode" in WooCommerce >
+- Command: `wp wc hpos compatibility-mode enable` (9.1.0+; before 9.5.0 it stops with "HPOS tables do not exist."
+  when the tables are missing, so use the checkbox there), or tick "Enable compatibility mode" in WooCommerce >
   Settings > Advanced > Features. Posts stay authoritative. Every new or changed order is copied to HPOS at once, and
   the backlog is queued as background batches.
 - Check: `wp wc hpos status` shows `HPOS enabled?: no`, `Compatibility mode enabled?: yes`, and `Unsynced orders`

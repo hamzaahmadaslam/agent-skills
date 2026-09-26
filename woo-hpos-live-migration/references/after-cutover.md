@@ -33,9 +33,9 @@ off. Check each area below at both points. Code links point at the WooCommerce 1
 
 ## Reports and Analytics
 
-- Legacy reports (WooCommerce > Reports, and the REST endpoints `reports/sales`, `sales-by-product`,
-  `sales-by-category`, `coupon-usage`, `customers`, `taxes-by-date`, `taxes-by-code`) built their SQL on `wp_posts` and
-  `wp_postmeta` through 11.0.x ([class-wc-admin-report.php @ 11.0.0 L169](https://github.com/woocommerce/woocommerce/blob/11.0.0/plugins/woocommerce/includes/admin/reports/class-wc-admin-report.php#L169)).
+- Legacy reports (the WooCommerce > Reports tabs: sales by date, product and category, coupon usage, customers, taxes
+  by date and by code; and the REST endpoints `reports/sales` and `reports/top_sellers`, which use the same report
+  code) built their SQL on `wp_posts` and `wp_postmeta` through 11.0.x ([class-wc-admin-report.php @ 11.0.0 L169](https://github.com/woocommerce/woocommerce/blob/11.0.0/plugins/woocommerce/includes/admin/reports/class-wc-admin-report.php#L169)).
   With HPOS authoritative and sync off, orders that exist only in HPOS were missing, and a fresh HPOS store saw zeros
   ([PR 65493](https://github.com/woocommerce/woocommerce/pull/65493)). From 11.1.0 these reports read the HPOS tables
   when HPOS is on ([class-wc-admin-report.php @ 11.1.2 L128-L129](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/admin/reports/class-wc-admin-report.php#L128-L129)).

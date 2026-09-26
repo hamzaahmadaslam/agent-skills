@@ -33,7 +33,7 @@ Code links point at the WooCommerce 11.1.2 tag. Every step below that changes da
 
 | Step | Backup first | Command | Check after | Undo |
 | --- | --- | --- | --- | --- |
-| Compatibility mode on (posts stay authoritative) | Full | `wp wc hpos compatibility-mode enable` (9.1.0+) or the checkbox | `status`: HPOS no, compatibility yes; unsynced count falls; a new order shows no `diff` | `wp wc hpos compatibility-mode disable` |
+| Compatibility mode on (posts stay authoritative) | Full | `wp wc hpos compatibility-mode enable` (9.1.0+; needs existing HPOS tables before 9.5.0) or the checkbox | `status`: HPOS no, compatibility yes; unsynced count falls; a new order shows no `diff` | `wp wc hpos compatibility-mode disable` |
 | Backfill the backlog | The previous full backup covers it: while posts are authoritative, sync writes only the HPOS tables ([DataSynchronizer.php L766-L799](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Internal/DataStores/Orders/DataSynchronizer.php#L766-L799)) | `wp wc hpos sync` | `Unsynced orders: 0`; no `batch-processing` errors | Stop the job; HPOS rows are unused while posts are authoritative |
 | Switch to HPOS | Full, taken just before | `wp wc hpos enable` | `status`: HPOS yes, compatibility yes, unsynced 0; flow tests; new order has a full post | `wp wc hpos disable` |
 | Compatibility mode off | Full | `wp wc hpos compatibility-mode disable` | `status`: compatibility no; new orders get placeholder posts; flow tests | `wp wc hpos compatibility-mode enable`, then wait for `Unsynced orders: 0` (back to the soak state) |

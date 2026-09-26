@@ -26,8 +26,9 @@ the WooCommerce 11.1.2 tag.
   `--verbose` (print errors per batch), `--re-migrate` (writes, see below)
   ([L305-L350](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Database/Migrations/CustomOrderTable/CLIRunner.php#L305-L350)).
 - Ends with `Success: N orders were verified in S seconds.` or an `Error:` listing the failing orders as JSON with the
-  column or meta key, the original value and the new value; the error sets a non-zero exit code
-  ([L528-L575](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Database/Migrations/CustomOrderTable/CLIRunner.php#L528-L575);
+  column or meta key, the original value and the new value; the error sets a non-zero exit code. With `--verbose` the
+  JSON comes as a warning after each batch instead, and the final `Error:` only says "Please review the errors above."
+  ([L438-L461, L528-L575](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Database/Migrations/CustomOrderTable/CLIRunner.php#L528-L575);
   sample output on the [CLI tools page](https://developer.woocommerce.com/docs/features/orders/high-performance-order-storage/cli-tools/)).
 - Skipped by design: `_paid_date`, `_completed_date`, the edit-lock meta, and keys added through
   `woocommerce_hpos_sync_ignored_order_props`

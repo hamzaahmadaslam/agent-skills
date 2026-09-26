@@ -58,8 +58,9 @@ Two reasons to prefer the loop:
   An event whose callback comes from a plugin active only on another site finds no callback: a WP-Cron event then runs
   without doing anything, and an Action Scheduler action fails with "no callbacks are registered"
   ([ActionScheduler_Action.php L73-L87](https://github.com/woocommerce/action-scheduler/blob/4.0.0/classes/actions/ActionScheduler_Action.php#L73-L87)).
-- When one site's `doing_cron` lock is held, the command prints the skip warning and returns, so the sites after it
-  wait for the next pass ([v3.0.0 L289-L294](https://github.com/wp-cli/cron-command/blob/v3.0.0/src/Cron_Event_Command.php#L289-L294)).
+- When one site's `doing_cron` lock is held, the command prints the skip warning (not shown with `--quiet`) and returns,
+  so the sites after it wait for the next pass
+  ([v3.0.0 L289-L294](https://github.com/wp-cli/cron-command/blob/v3.0.0/src/Cron_Event_Command.php#L289-L294)).
 
 `--network` fits networks where every site runs the same plugins and theme.
 

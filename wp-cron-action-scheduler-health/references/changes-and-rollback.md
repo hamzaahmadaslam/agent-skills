@@ -33,7 +33,8 @@ restore on staging.
   `wp-config-pantheon.php`.
 - Backup: `wp-config.php`. Also note whether the constant existed before: `wp config get DISABLE_WP_CRON --type=constant`.
 - Check: `wp eval 'var_export( defined( "DISABLE_WP_CRON" ) && DISABLE_WP_CRON );'` prints `true`; after the next
-  page views, the access log shows no new `wp-cron.php` requests from the `WordPress/` client.
+  page views, the access log shows no new `wp-cron.php` requests with a `doing_wp_cron` value from the `WordPress/`
+  client (Site Health's loopback test posts to `wp-cron.php` without one).
 - Undo: `wp config delete DISABLE_WP_CRON --type=constant` when it did not exist before
   ([config delete](https://developer.wordpress.org/cli/commands/config/delete/)), otherwise restore the file. Undo this
   before removing the crontab line, so the site is never without a runner.
@@ -107,18 +108,22 @@ After the runner is fixed, the owner may want the backlog cleared at once instea
   ([tuning-and-cleanup.md](tuning-and-cleanup.md#cleaning-up-a-backlog)).
 - Backup: both Action Scheduler tables, right before, at a quiet hour.
 - Check: counts by status and log rows in the SQL report; pending actions unchanged.
-- Undo: import the export. That also removes every action scheduled after the backup, which is why the backup is taken
-  right before and the import is only for a mistake found at once.
+- Undo: import the export. That also removes every action scheduled after the backup, and actions that ran after it
+  return to their earlier status, so pending ones run again (emails, webhooks, renewals). That is why the backup is
+  taken right before and the import is only for a mistake found at once.
 
 ## Cancel duplicate actions
 
 - Change: after the code that creates them is fixed, `wp action-scheduler action list --hook=<hook> --status=pending --per_page=0 --format=ids`,
-  keep the earliest per argument set, and cancel the others by ID with `wp action-scheduler action cancel` or delete
-  them with `wp action-scheduler action delete <id>...` ([action-scheduler-wp-cli.md](action-scheduler-wp-cli.md)).
+  keep the earliest per argument set, and delete the others by ID with `wp action-scheduler action delete <id>...`
+  ([action-scheduler-wp-cli.md](action-scheduler-wp-cli.md)). Not `wp action-scheduler action cancel`: it takes a
+  hook (with `--args` and `--group`), not IDs, and cancels the earliest matching action, the one to keep
+  ([Cancel_Command.php](https://github.com/woocommerce/action-scheduler/blob/4.0.0/classes/WP_CLI/Action/Cancel_Command.php)).
 - Backup: both Action Scheduler tables.
 - Check: the duplicates block of the SQL report is empty for that hook; one pending action per argument set remains.
 - Undo: re-create an action with `wp action-scheduler action create <hook> <date> --args='<json>' --group=<group>` from
-  the saved details, or import the export right after the change.
+  the saved details, adding `--interval=<seconds>` or `--cron='<expression>'` for a recurring action (without either
+  it comes back as a single action), or import the export right after the change (with the side effects above).
 
 ## Remove duplicate or orphaned WP-Cron events
 
@@ -142,4 +147,5 @@ After the runner is fixed, the owner may want the backlog cleared at once instea
 - Check: `wp action-scheduler version` shows the new version; `wp action-scheduler status` works; the queue moves.
 - Undo: reinstall the previous plugin version (`wp plugin install <slug> --version=<old> --force`,
   [plugin install](https://developer.wordpress.org/cli/commands/plugin/install/)) and, if the schema changed, restore
-  the database export taken right before.
+  the database export taken right before. On a live store that restore also discards every order and change made
+  since the export: decide it with the owner, and prefer the staging timing that makes it unnecessary.

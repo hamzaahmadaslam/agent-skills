@@ -159,10 +159,10 @@ run --due-now` is a step of its own with no undo.
 ### 7. Verify
 
 Follow `references/verification.md`: the runtime constant; one `run` line per interval with `exit=0` and no `skip`
-lines; no event more than about one interval past due; Site Health's Scheduled events test; no new `WordPress/`
-requests to `wp-cron.php`; "WP Cron" runs and a falling past-due count in the SQL report; and after 24 hours, the daily
-events and Action Scheduler's 3 am cleanup. Roll back with the order in that file when a rollback trigger holds at two
-checks in a row.
+lines; no event more than about one interval past due; Site Health's Scheduled events test; no new `WordPress/` spawns
+of `wp-cron.php` (requests with `doing_wp_cron`); "WP Cron" runs and a falling past-due count in the SQL report; and
+after 24 hours, the daily events and Action Scheduler's 3 am cleanup. Roll back with the order in that file when a
+rollback trigger holds at two checks in a row.
 
 ### 8. Tune and clean up (only after step 7 passes)
 
@@ -170,8 +170,8 @@ checks in a row.
   `wp action-scheduler run --batches=<n>` in the runner script (`references/tuning-and-cleanup.md`).
 - Backlog of old rows: let the daily cleanup (4.0.0 and later) catch up, or `wp action-scheduler clean` with
   `--status` and always `--before`, after a backup of both tables.
-- Duplicates: after the vendor's fix, cancel or delete the extras by ID; remove WP-Cron events only for plugins that are
-  gone or fixed.
+- Duplicates: after the vendor's fix, delete the extras by ID (`action cancel` works by hook and cancels the earliest
+  match); remove WP-Cron events only for plugins that are gone or fixed.
 - Before updating to Action Scheduler 4.2.0, which alters the actions table, shrink the table and time the update on
   staging.
 

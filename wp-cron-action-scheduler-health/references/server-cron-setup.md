@@ -15,7 +15,7 @@ This page uses WP-CLI for the first part where the host allows it.
 | Method | Command | Strengths | Weaknesses |
 | --- | --- | --- | --- |
 | WP-CLI (preferred when there is shell access) | `wp cron event run --due-now` | Runs in PHP CLI, where `max_execution_time` defaults to 0 ([php.net](https://www.php.net/manual/en/info.configuration.php#ini.max-execution-time)); no CDN, WAF, basic auth or web server timeout in the way; exit code and errors land in the job's log; defines `DOING_CRON` ([Runner.php L1288-L1290](https://github.com/wp-cli/wp-cli/blob/v2.12.0/php/WP_CLI/Runner.php#L1288-L1290)) | Needs WP-CLI and a CLI PHP that matches the site's; loads WordPress on every run; in WP-CLI 2.12.0 ignores the `doing_cron` lock (next section) |
-| HTTP request | `curl -fsS --max-time 30 -o /dev/null "https://www.example.com/wp-cron.php?doing_wp_cron"` | Works where only a URL can be scheduled (cPanel, Plesk "Fetch a URL"); `wp-cron.php` takes its own lock | Passes through CDN, WAF, basic auth and web server limits; on PHP-FPM or LiteSpeed the response returns before the events run, so a 200 proves only that WordPress answered ([wp-cron.php L19-L31](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-cron.php#L19-L31)) |
+| HTTP request | `curl -fsS --max-time 30 -o /dev/null "https://www.example.com/wp-cron.php?doing_wp_cron"` | Works where only a URL can be scheduled (cPanel, Plesk "Fetch a URL"); `wp-cron.php` takes its own lock | Passes through CDN, WAF, basic auth and web server limits; on PHP-FPM or LiteSpeed the response is sent before WordPress even loads, so a 200 proves only that the request reached `wp-cron.php` ([wp-cron.php L19-L47](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-cron.php#L19-L47)) |
 | The host's own scheduler | Panel settings | Nothing to maintain | Interval and method set by the host; see [hosting-variants.md](hosting-variants.md) |
 
 ## WP-CLI versions and the cron lock
@@ -107,10 +107,13 @@ exit "$status"
   ([timeout(1)](https://man7.org/linux/man-pages/man1/timeout.1.html)). A stopped run loses the event it was running:
   that occurrence was already removed or moved to its next time
   ([wp-cron-internals.md](wp-cron-internals.md#what-wp-cronphp-does)). Set it well above the longest normal run.
-- `--quiet` suppresses WP-CLI's informational lines
-  ([global parameters](https://developer.wordpress.org/cli/commands/cron/event/run/)); errors and PHP warnings still
-  reach the log. The log gets one `run` or `skip` line per minute, about 1,440 lines a day, plus errors; rotate it
-  with the server's usual log rotation.
+- `--quiet` suppresses WP-CLI's informational lines and its warnings
+  ([global parameters](https://developer.wordpress.org/cli/commands/cron/event/run/),
+  [Quiet logger](https://github.com/wp-cli/wp-cli/blob/v2.12.0/php/WP_CLI/Loggers/Quiet.php)); errors and PHP
+  warnings still reach the log. cron-command's "already in progress" skip is a WP-CLI warning, so with `--quiet` a
+  run that found the lock leaves only a normal `run exit=0` line; the `skip` lines come from the script's `flock`.
+  The log gets one `run` or `skip` line per minute, about 1,440 lines a day, plus errors; rotate it with the
+  server's usual log rotation.
 - `scripts/cron-run-log.mjs` reads this log: runs per hour, gaps, skips, failures and durations.
 - For a network, the loop version is in [multisite.md](multisite.md).
 
@@ -170,9 +173,9 @@ exit "$status"
 6. Watch the first two runs in the log, then follow [verification.md](verification.md).
 
 Setting the constant first and the crontab line a minute later leaves at most one interval with no runner, and never
-two runners at once; with cron-command 2.3.2, two runners can run the same due event twice. The undo goes in the
-reverse order: remove the constant first, so page views run WP-Cron again, then restore the crontab, then delete the
-script.
+two runners at once; with cron-command 2.3.2, two runners can run the same due event twice. The undo is not the
+install order reversed: remove the constant first, so page views run WP-Cron again, then restore the crontab, then
+delete the script.
 
 ## The HTTP variant
 
@@ -191,4 +194,6 @@ script.
   ([handbook](https://developer.wordpress.org/plugins/cron/hooking-wp-cron-into-the-system-task-scheduler/)).
 - The request goes through everything a visitor's would. Behind basic auth or a WAF challenge it fails; use WP-CLI
   there rather than opening a hole in the protection.
-- Only the status code reaches the log. Check the work itself with the state report and the SQL checks.
+- A success writes nothing to the log, and a failure writes one curl error line with no time
+  (`curl: (22) The requested URL returned error: 404`). Check the work itself with the state report and the SQL
+  checks.

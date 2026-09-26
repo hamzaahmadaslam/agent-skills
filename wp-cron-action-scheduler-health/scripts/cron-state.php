@@ -174,7 +174,7 @@ if ( false === $wcah_lock || null === $wcah_lock || '' === $wcah_lock ) {
 	$wcah_lock_age = microtime( true ) - (float) $wcah_lock;
 	$wcah_timeout  = defined( 'WP_CRON_LOCK_TIMEOUT' ) ? (int) WP_CRON_LOCK_TIMEOUT : 60;
 	if ( $wcah_lock_age < -10 * MINUTE_IN_SECONDS ) {
-		$state = 'more than 10 minutes in the future: spawn_cron() ignores it';
+		$state = 'more than 10 minutes in the future: page-view spawns ignore it, but a server job (wp-cron.php, cron-command 2.3.5+) waits until it passes';
 	} elseif ( $wcah_lock_age < $wcah_timeout ) {
 		$state = 'held: a run started ' . $wcah_span( $wcah_lock_age ) . ' ago, or is starting';
 	} else {
@@ -222,7 +222,7 @@ if ( ! is_array( $wcah_raw ) ) {
 }
 $wcah_line( 'Stored size of the cron option (bytes)', strlen( maybe_serialize( $wcah_raw ) ) );
 if ( ! isset( $wcah_raw['version'] ) && $wcah_raw ) {
-	echo "The cron array has no version key (old format). WordPress upgrades it on its next write.\n";
+	echo "The cron array has no version key (old format). WordPress rewrites it in the current format the next time it reads it through _get_cron_array().\n";
 }
 
 $wcah_hooks = array();
@@ -268,7 +268,7 @@ foreach ( $wcah_raw as $wcah_time => $wcah_cronhooks ) {
 			$h['sigs'][ $wcah_sig ] = true;
 			$wcah_schedule          = is_array( $wcah_event ) && isset( $wcah_event['schedule'] ) ? $wcah_event['schedule'] : false;
 			$h['schedules'][ false === $wcah_schedule ? 'single' : (string) $wcah_schedule ] = true;
-			if ( false !== $wcah_schedule && ! isset( $wcah_schedules[ $wcah_schedule ] ) && empty( $wcah_event['interval'] ) ) {
+			if ( false !== $wcah_schedule && ! isset( $wcah_schedules[ $wcah_schedule ] ) ) {
 				++$h['unknown'];
 			}
 			$h['next'] = min( $h['next'], $wcah_time );
@@ -388,8 +388,13 @@ $wcah_extra = array_filter(
 	}
 );
 $wcah_line( 'Other callbacks on action_scheduler_run_queue', $wcah_extra ? implode( '; ', $wcah_extra ) : 'none' );
-$wcah_next = wp_next_scheduled( 'action_scheduler_run_queue', array( 'WP Cron' ) );
-$wcah_line( 'WP-Cron event action_scheduler_run_queue', false === $wcah_next ? 'not scheduled' : ( $wcah_next <= $wcah_now ? 'due ' . $wcah_span( $wcah_now - $wcah_next ) . ' ago' : 'next in ' . $wcah_span( $wcah_next - $wcah_now ) ) );
+// wp_next_scheduled() reads through _get_cron_array(), which rewrites a cron array in the old format: skip it then.
+if ( is_array( $wcah_raw ) && ! isset( $wcah_raw['version'] ) && $wcah_raw ) {
+	$wcah_line( 'WP-Cron event action_scheduler_run_queue', 'not checked (the cron array has the old format)' );
+} else {
+	$wcah_next = wp_next_scheduled( 'action_scheduler_run_queue', array( 'WP Cron' ) );
+	$wcah_line( 'WP-Cron event action_scheduler_run_queue', false === $wcah_next ? 'not scheduled' : ( $wcah_next <= $wcah_now ? 'due ' . $wcah_span( $wcah_now - $wcah_next ) . ' ago' : 'next in ' . $wcah_span( $wcah_next - $wcah_now ) ) );
+}
 try {
 	$wcah_line( 'Open claims (batches running)', ActionScheduler::store()->get_claim_count() );
 } catch ( Throwable $e ) {

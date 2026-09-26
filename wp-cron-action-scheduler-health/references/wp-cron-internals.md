@@ -30,9 +30,9 @@ tag unless they say otherwise. `cron.php` means
 | `init` | `wp_cron()` is hooked on `init`, except when `DOING_CRON` is defined | [default-filters.php L411-L414](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/default-filters.php#L411-L414) |
 | Timing | Since 6.9.0 the spawn runs at `shutdown`, after the page is sent; with `ALTERNATE_WP_CRON` it stays at `wp_loaded` | [cron.php L1004-L1032](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L1004-L1032) |
 | Gate | Nothing happens when `DISABLE_WP_CRON` is true, when the request is for `wp-cron.php`, or when no event is due | [cron.php L1048-L1092](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L1048-L1092) |
-| Lock | The `doing_cron` transient holds the start time of the last spawn. No spawn while it is younger than `WP_CRON_LOCK_TIMEOUT`; a value more than 10 minutes in the future is ignored | [cron.php L899-L924](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L899-L924) |
+| Lock | The `doing_cron` transient holds the start time of the last spawn. No spawn while it is younger than `WP_CRON_LOCK_TIMEOUT`; a value more than 10 minutes in the future is ignored by page-view spawns only: `wp-cron.php` called by a server job, and cron-command 2.3.5 and later, wait until it passes | [cron.php L899-L924](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L899-L924), [wp-cron.php L94-L99](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-cron.php#L94-L99), [Cron_Event_Command.php L329-L333](https://github.com/wp-cli/cron-command/blob/v3.0.0/src/Cron_Event_Command.php#L329-L333) |
 | Loopback | Non-blocking POST to `wp-cron.php?doing_wp_cron=<lock>`, timeout 0.01 s, SSL not verified unless `https_local_ssl_verify` says so, adjustable with the `cron_request` filter | [cron.php L957-L1001](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L957-L1001) |
-| Alternative | With `ALTERNATE_WP_CRON`, only front-end GET requests (no Ajax, no XML-RPC) spawn: the visitor is redirected to the same URL with `?doing_wp_cron` and `wp-cron.php` runs in that request | [cron.php L937-L955](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L937-L955) |
+| Alternative | With `ALTERNATE_WP_CRON`, only GET requests spawn (front end, admin and REST alike; not Ajax or XML-RPC): the visitor is redirected to the same URL with `?doing_wp_cron` and `wp-cron.php` runs in that request | [cron.php L937-L955](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L937-L955) |
 
 What follows from this:
 
@@ -93,10 +93,12 @@ What follows from this:
 - The next run is `now + interval` for an event that ran on time, and otherwise the next point on the event's
   original grid: a late recurring event runs once, and the occurrences it missed are not replayed
   ([cron.php L458-L466](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L458-L466)).
-- When the schedule name is no longer registered (the plugin that added it is gone), the interval saved with the
-  event is used; without one, rescheduling fails with `invalid_schedule`
-  ([cron.php L380-L456](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L380-L456)).
-  Since `wp-cron.php` unschedules the occurrence anyway, such a recurring event disappears after that run.
+- When the schedule name is no longer registered (the plugin that added it is gone), rescheduling fails with
+  `invalid_schedule`: `wp_reschedule_event()` works out the next time from the interval saved with the event, but
+  then hands the event to `wp_schedule_event()`, which refuses a schedule that is not registered
+  ([cron.php L380-L466](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L380-L466),
+  [L265-L276](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L265-L276)). Since
+  `wp-cron.php` unschedules the occurrence anyway, such a recurring event disappears after that run.
 - Built-in schedules: `hourly`, `twicedaily` (12 hours), `daily` and `weekly` (5.4.0); plugins add others through
   `cron_schedules` ([cron.php L1133-L1170](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L1133-L1170)).
   Action Scheduler adds `every_minute` (60 seconds), see [action-scheduler-internals.md](action-scheduler-internals.md).
@@ -133,7 +135,7 @@ What follows from this:
 | Constant | Default | Effect | Source |
 | --- | --- | --- | --- |
 | `DISABLE_WP_CRON` | not defined | Page views never spawn a run; `wp-cron.php` still runs when requested | [cron.php L1048-L1054](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L1048-L1054); [wp-config](https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#disable-cron-and-cron-timeout) |
-| `ALTERNATE_WP_CRON` | not defined | Redirect method on front-end GET requests; the handbook: "This method has certain risks" | [cron.php L937-L955](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L937-L955); [wp-config](https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#alternative-cron) |
+| `ALTERNATE_WP_CRON` | not defined | Redirect method on GET requests other than Ajax and XML-RPC; the handbook: "This method has certain risks" | [cron.php L937-L955](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L937-L955); [wp-config](https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#alternative-cron) |
 | `WP_CRON_LOCK_TIMEOUT` | 60 seconds | Minimum time between spawns, and the lock age after which another run may start | [default-constants.php L395-L400](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/default-constants.php#L395-L400); [cron.php L921-L924](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L921-L924) |
 
 ## Site Health thresholds

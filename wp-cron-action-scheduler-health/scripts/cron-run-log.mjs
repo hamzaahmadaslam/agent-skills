@@ -45,6 +45,10 @@ if (Number.isNaN(since)) {
   process.exit(1);
 }
 const hoursShown = Number(option("hours", "48"));
+if (!Number.isInteger(hoursShown) || hoursShown <= 0) {
+  console.error("--hours must be a whole number of hours, for example --hours=48");
+  process.exit(1);
+}
 
 const RUN = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (run|queue) exit=(\d+) seconds=(\d+)(?: url=(\S+))?\s*$/;
 const SKIP = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) skip (\S+)/;
@@ -97,7 +101,8 @@ for (const file of files) {
     if (m) {
       const time = Date.parse(m[1]);
       if (time >= since) events.push({ time, kind: "skip", reason: m[2] });
-      pending = [];
+      // Keep the message lines: a long run writes its output before the next minute's skip line, and its own run
+      // line comes after that.
       continue;
     }
     otherLines += 1;

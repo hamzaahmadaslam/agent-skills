@@ -1,8 +1,8 @@
 # Tuning the queue and cleaning up
 
 Read this after the runner works (steps 6 and 7). Tuning a queue that has no working runner only hides the cause.
-Every change here has its backup, check and undo in [changes-and-rollback.md](changes-and-rollback.md). Code links
-point at Action Scheduler 4.0.0.
+Every change here has its backup, check and undo in [changes-and-rollback.md](changes-and-rollback.md), except the
+`OPTIMIZE TABLE` rebuild, which is planned with the host. Code links point at Action Scheduler 4.0.0.
 
 ## Filters, their defaults and when to change them
 

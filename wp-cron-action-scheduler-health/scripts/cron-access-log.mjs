@@ -9,15 +9,16 @@
 //
 // Usage:
 //   node cron-access-log.mjs access.log [access.log.1 access.log.2.gz ...]
-//   node cron-access-log.mjs access.log --after=2026-09-26T10:05:00Z   # time of the change: loopbacks after it are flagged
+//   node cron-access-log.mjs access.log --after=2026-09-26T10:05:00Z   # time of the change: spawns after it are flagged
 //   node cron-access-log.mjs access.log --since=2026-09-25T00:00:00Z --until=2026-09-26T00:00:00Z --json
 //
 // Clients: WordPress sends "WordPress/<version>; <site URL>" as its User-Agent for its loopback requests, and curl
 // sends "curl/<version>" (references/wp-cron-internals.md, references/server-cron-setup.md). Behind a proxy or CDN,
 // the logged address may be the proxy's, so "private network" and "outside" describe the last hop only.
 
-import { readFileSync } from "node:fs";
-import { gunzipSync } from "node:zlib";
+import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
+import { createGunzip } from "node:zlib";
 
 const args = process.argv.slice(2);
 const files = args.filter((a) => !a.startsWith("--"));
@@ -93,58 +94,68 @@ const hours = new Map();
 let first = Infinity;
 let last = -Infinity;
 
+// Line by line, so a log of any size can be read (a whole file in one string stops at about 512 MB).
+async function* linesOf(file) {
+  const stream = createReadStream(file);
+  await new Promise((resolve, reject) => {
+    stream.once("open", resolve);
+    stream.once("error", reject);
+  });
+  const input = file.endsWith(".gz") ? stream.pipe(createGunzip()) : stream;
+  stream.once("error", (error) => input.destroy(error));
+  yield* createInterface({ input, crlfDelay: Infinity });
+}
+
 for (const file of files) {
-  let text;
   try {
-    const buffer = readFileSync(file);
-    text = file.endsWith(".gz") ? gunzipSync(buffer).toString("utf8") : buffer.toString("utf8");
+    for await (const line of linesOf(file)) {
+      if (!line) continue;
+      totals.lines += 1;
+      const m = LINE.exec(line);
+      if (!m) {
+        totals.unparsed += 1;
+        continue;
+      }
+      const time = parseTime(m[2]);
+      if (Number.isNaN(time) || time < since || time > until) continue;
+      first = Math.min(first, time);
+      last = Math.max(last, time);
+      const target = m[4];
+      const [path, query = ""] = target.split("?", 2);
+      const hourKey = new Date(time).toISOString().slice(0, 13) + ":00Z";
+      if (!hours.has(hourKey)) hours.set(hourKey, { cron: 0, loopback: 0, curl: 0, wget: 0, other: 0, notOk: 0, asyncRunner: 0 });
+      const hour = hours.get(hourKey);
+      const status = Number(m[5]);
+
+      if (/\/wp-cron\.php$/.test(path)) {
+        const who = client(m[6]);
+        const lockMatch = /(?:^|&)doing_wp_cron=([^&]*)/.exec(query);
+        totals.cron += 1;
+        bump(byClient, who);
+        bump(byStatus, `${who} ${statusClass(status)}`);
+        bump(bySource, source(m[1]));
+        bump(byLockValue, lockMatch && lockMatch[1] ? "with a doing_wp_cron value (WordPress's own spawn)" : "without a value (an outside caller or a server cron)");
+        hour.cron += 1;
+        if (who === "WordPress loopback") hour.loopback += 1;
+        else if (who === "curl") hour.curl += 1;
+        else if (who === "Wget") hour.wget += 1;
+        else hour.other += 1;
+        if (status < 200 || status >= 300) hour.notOk += 1;
+        // Only a spawn carries doing_wp_cron; Site Health's loopback test posts to wp-cron.php without it.
+        if (after !== null && who === "WordPress loopback" && lockMatch && lockMatch[1] && time > after) {
+          loopbackAfter.count += 1;
+          if (loopbackAfter.first === null) loopbackAfter.first = new Date(time).toISOString();
+        }
+      } else if (/\/admin-ajax\.php$/.test(path) && /(?:^|&)action=as_async_request_queue_runner(?:&|$)/.test(query)) {
+        totals.asyncRunner += 1;
+        hour.asyncRunner += 1;
+      } else if (/(?:^|&)doing_wp_cron=/.test(query)) {
+        totals.alternateRedirects += 1;
+      }
+    }
   } catch (error) {
     console.error(`Cannot read ${file}: ${error.code || error.message}`);
     process.exit(1);
-  }
-  for (const line of text.split(/\r?\n/)) {
-    if (!line) continue;
-    totals.lines += 1;
-    const m = LINE.exec(line);
-    if (!m) {
-      totals.unparsed += 1;
-      continue;
-    }
-    const time = parseTime(m[2]);
-    if (Number.isNaN(time) || time < since || time > until) continue;
-    first = Math.min(first, time);
-    last = Math.max(last, time);
-    const target = m[4];
-    const [path, query = ""] = target.split("?", 2);
-    const hourKey = new Date(time).toISOString().slice(0, 13) + ":00Z";
-    if (!hours.has(hourKey)) hours.set(hourKey, { cron: 0, loopback: 0, curl: 0, wget: 0, other: 0, notOk: 0, asyncRunner: 0 });
-    const hour = hours.get(hourKey);
-    const status = Number(m[5]);
-
-    if (/\/wp-cron\.php$/.test(path)) {
-      const who = client(m[6]);
-      const lockMatch = /(?:^|&)doing_wp_cron=([^&]*)/.exec(query);
-      totals.cron += 1;
-      bump(byClient, who);
-      bump(byStatus, `${who} ${statusClass(status)}`);
-      bump(bySource, source(m[1]));
-      bump(byLockValue, lockMatch && lockMatch[1] ? "with a doing_wp_cron value (WordPress's own spawn)" : "without a value (an outside caller or a server cron)");
-      hour.cron += 1;
-      if (who === "WordPress loopback") hour.loopback += 1;
-      else if (who === "curl") hour.curl += 1;
-      else if (who === "Wget") hour.wget += 1;
-      else hour.other += 1;
-      if (status < 200 || status >= 300) hour.notOk += 1;
-      if (after !== null && who === "WordPress loopback" && time > after) {
-        loopbackAfter.count += 1;
-        if (loopbackAfter.first === null) loopbackAfter.first = new Date(time).toISOString();
-      }
-    } else if (/\/admin-ajax\.php$/.test(path) && /(?:^|&)action=as_async_request_queue_runner(?:&|$)/.test(query)) {
-      totals.asyncRunner += 1;
-      hour.asyncRunner += 1;
-    } else if (/(?:^|&)doing_wp_cron=/.test(query)) {
-      totals.alternateRedirects += 1;
-    }
   }
 }
 
@@ -201,7 +212,7 @@ if (after !== null) {
   const afterText = new Date(after).toISOString().replace(".000Z", "Z");
   console.log(
     loopbackAfter.count
-      ? `After ${afterText}: ${loopbackAfter.count} wp-cron.php request(s) from WordPress's own loopback, first at ${loopbackAfter.first.replace(".000Z", "Z")}. Page views still start WP-Cron: DISABLE_WP_CRON is not in effect for this site, or another install shares this log.`
+      ? `After ${afterText}: ${loopbackAfter.count} wp-cron.php request(s) from WordPress's own spawn (with a doing_wp_cron value), first at ${loopbackAfter.first.replace(".000Z", "Z")}. Page views still start WP-Cron: DISABLE_WP_CRON is not in effect for this site, or another install shares this log.`
       : `After ${afterText}: no wp-cron.php requests from WordPress's own loopback.`,
   );
 }

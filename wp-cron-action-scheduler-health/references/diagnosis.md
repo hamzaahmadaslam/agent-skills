@@ -23,9 +23,9 @@ with their backups and undo are in [changes-and-rollback.md](changes-and-rollbac
 | Every due event late; `DISABLE_WP_CRON` is true; no runs in the runner log | No runner: the constant was set without a job, or the job fails before WordPress loads | `crontab -l`, the host panel, the rehearsal command in [server-cron-setup.md](server-cron-setup.md#find-the-facts-first-read-only) | Install or repair the job |
 | Every due event late; WP-Cron on; `wp-cron.php` requests from the `WordPress/` client missing, or answered 401, 403 or 5xx | The loopback is blocked: basic auth, a firewall or WAF rule, DNS, TLS | `cron-access-log.mjs` by client and status; Site Health's loopback test, which can pass behind basic auth when the real spawn fails; `wp cron test`, which sends one HTTP request and runs no events | Remove the block, or move to a WP-CLI server cron |
 | Events late at quiet hours, or on a site served mostly from a page cache | No PHP request starts a run | `cron-access-log.mjs`: hours with no `wp-cron.php` requests | A server cron |
-| `wp-cron.php` requested, events still late, `doing_cron` lock old or far ahead, or `WP_CRON_LOCK_TIMEOUT` set high | Spawns refused by the lock | The report's lock age and constants ([spawn_cron L915-L924](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L915-L924)) | Remove a large `WP_CRON_LOCK_TIMEOUT` |
+| `wp-cron.php` requested, events still late, a `doing_cron` lock held at every check or dated in the future, or `WP_CRON_LOCK_TIMEOUT` set high | Spawns refused by the lock | The report's lock age and constants ([spawn_cron L915-L924](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L915-L924)) | Remove a large `WP_CRON_LOCK_TIMEOUT` |
 | Some events run, the ones after them stay late; PHP fatal errors at run times | A fatal error or a slow event ends or holds the run | The PHP error log around the run times; durations in the runner log | The failing plugin's vendor; on staging, `wp cron event run <hook>` to reproduce |
-| A recurring event disappeared after running; "Cron reschedule event error for hook" in the error log | Its schedule is no longer registered and no interval was stored (`invalid_schedule`) | The report's unknown-schedule list ([cron.php L380-L456](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L380-L456)) | Re-activate the plugin that registers the schedule, or leave the event removed if the plugin is gone |
+| A recurring event disappeared after running; "Cron reschedule event error for hook" in the error log | Its schedule is no longer registered (`invalid_schedule`), whatever interval was stored | The report's unknown-schedule list ([cron.php L380-L466](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/cron.php#L380-L466)) | Re-activate the plugin that registers the schedule, or leave the event removed if the plugin is gone |
 | The same events come back or vanish; "Cron unschedule event error" in the error log; a very large `cron` option | The `cron` option cannot be saved, or two writers overwrote each other | The report's option size and event count; the database error log; the number of runners | Fewer events (clear duplicates after fixing their source), one runner |
 | Late on some sites of a network only | The job covers one site | Site URLs in the runner log | The loop in [multisite.md](multisite.md) |
 | Late by up to an hour on Pantheon, 30 minutes with Plesk WP Toolkit's task, 5 minutes on Kinsta | The host scheduler's interval | [hosting-variants.md](hosting-variants.md) | A tighter job where the host allows it |
@@ -63,10 +63,10 @@ compare like with like before calling an event late.
 Messages are stored in the site's language; the SQL report groups the English ones
 ([Logger L99-L238](https://github.com/woocommerce/action-scheduler/blob/4.0.0/classes/abstracts/ActionScheduler_Logger.php#L99-L238)).
 
-| Message starts with | Cause | Next step |
+| Log message | Cause | Next step |
 | --- | --- | --- |
-| "Scheduled action for ... will not be executed as no callbacks are registered" | The plugin that scheduled it is inactive, or adds its callback only on some requests | Re-activate the plugin, or cancel that hook's actions with the owner's approval |
-| "action failed via ...:" | An exception in the callback | Read one action's log (`wp action-scheduler action logs <id>`) and hand it to the vendor |
+| "action failed via ...: Scheduled action for ... will not be executed as no callbacks are registered" | The plugin that scheduled it is inactive, or adds its callback only on some requests | Re-activate the plugin, or cancel that hook's actions with the owner's approval |
+| "action failed via ...:" followed by any other text | An exception in the callback | Read one action's log (`wp action-scheduler action logs <id>`) and hand it to the vendor |
 | "unexpected shutdown: PHP Fatal error" | A fatal error, often memory | The PHP error log; the CLI and web memory limits |
 | "action was in-progress for at least ... seconds" | The runner was killed (timeout, fatal error without a trace), or the action really runs longer than the failure period | The runner log's durations and exit codes; `timeout` in the runner script |
 | "This action data appears to be corrupt" | Unreadable action data, cancelled by 4.0.0 or later | The vendor of the hook, if it recurs |
@@ -75,7 +75,7 @@ Messages are stored in the site's language; the SQL report groups the English on
 
 | Evidence | Likely cause | Confirm (read-only) | Fix |
 | --- | --- | --- | --- |
-| Several pending actions with the same hook, arguments and group | Scheduling without `$unique` or an `as_has_scheduled_action()` check; before 4.2.0 also two requests racing past the unique check | The duplicates block in the SQL report | Vendor fix first, then cancel the extras by ID |
+| Several pending actions with the same hook, arguments and group | Scheduling without `$unique` or an `as_has_scheduled_action()` check; before 4.2.0 also two requests racing past the unique check | The duplicates block in the SQL report | Vendor fix first, then delete the extras by ID (`action delete`; `action cancel` takes a hook, not IDs) |
 | The same work done twice | Two actions, not one action run twice: claims are exclusive | Completed actions of that hook and arguments close together in time | As above |
 
 ## Tables that keep growing

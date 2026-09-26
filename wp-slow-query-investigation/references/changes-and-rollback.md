@@ -32,7 +32,7 @@ quiet hour. Change one thing at a time, and measure before and after with the sa
 ## Install Query Monitor
 
 - Change: `wp plugin install query-monitor --activate`, staging first.
-- Backup: note whether `wp-content/db.php` exists and what it is (`wp plugin list --status=dropin`); Query Monitor
+- Backup: note whether `wp-content/db.php` exists and what it is (`wp plugin list --status=dropin --skip-update-check`); Query Monitor
   does not replace an existing one ([query-monitor.md](query-monitor.md#the-dbphp-drop-in)).
 - Check: the toolbar entry appears for administrators; the site behaves as before.
 - Undo: `wp plugin deactivate query-monitor`, then `wp plugin delete query-monitor`; on multisite with a per-site

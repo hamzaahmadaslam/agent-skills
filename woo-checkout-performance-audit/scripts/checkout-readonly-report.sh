@@ -8,6 +8,8 @@
 # `wp plugin list` and `wp theme list` (both skip the update check), `wp db prefix`, one `wp eval` that prints the base
 # table prefix, and `wp db query` with the SELECT blocks. It makes no network calls of its own and changes no settings,
 # orders or tables. Loading WordPress runs the site's own code, as any request does.
+# WordPress loads with WP-Cron spawning turned off (a spawn writes the doing_cron lock and sends a loopback request)
+# and without WP-CLI's own update check.
 #
 # Usage (run where WP-CLI can reach the site; any arguments are passed to every wp call as global flags):
 #   bash checkout-readonly-report.sh --path=/var/www/html
@@ -20,7 +22,11 @@
 
 set -u
 
-WP=(wp "$@")
+# Keep the report read-only: no WP-CLI update check, and no WP-Cron spawn while WordPress loads (WP-CLI removes
+# wp_cron only when ALTERNATE_WP_CRON is set).
+export WP_CLI_DISABLE_AUTO_CHECK_UPDATE=1
+NO_SPAWN='--exec=WP_CLI::add_wp_hook( "init", static function () { remove_action( "init", "wp_cron" ); }, 0 );'
+WP=(wp "$NO_SPAWN" "$@")
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SQL_FILE="$HERE/checkout-checks.sql"
 STATE_FILE="$HERE/checkout-state.php"
@@ -29,9 +35,11 @@ section() {
 	printf '\n== %s ==\n' "$1"
 }
 
-# Print a command, run it, and keep going when it fails (older releases lack some commands).
+# Print a command (without the --exec guard), run it, and keep going when it fails (older releases lack some commands).
 run() {
-	printf '$ %s\n' "$*"
+	local shown=() arg
+	for arg in "$@"; do [ "$arg" = "$NO_SPAWN" ] || shown+=("$arg"); done
+	printf '$ %s\n' "${shown[*]}"
 	"$@" 2>&1 || printf '(command failed with exit code %s)\n' "$?"
 }
 

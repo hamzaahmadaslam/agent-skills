@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Needs shell access with WP-CLI to the store or to a staging copy, and WooCommerce 8.2 or later. Written against WooCommerce 11.1.2; references/version-notes.md lists what differs on older releases."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 

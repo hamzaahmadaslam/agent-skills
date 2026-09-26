@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Needs WP-CLI read access to the site or a staging copy (the helpers run through wp eval-file and wp db query), and Node.js 20 or later for the slow log digest. Written against WordPress 7.1.2, Query Monitor 4.0.7, WooCommerce 11.1.2, WP-CLI 2.12.0, the MySQL 8.4 Reference Manual and the MariaDB documentation as of 2026-09-26; references/version-notes.md lists what differs on older releases."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 

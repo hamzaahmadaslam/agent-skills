@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Needs shell access with WP-CLI to the store or a staging copy for the read-only report, a Chromium-based browser for the browser measurements, and Node.js 20 or later for the HAR and access-log summaries. Written against WooCommerce 11.1.2, WordPress 7.1.2 and Action Scheduler 4.0.0; references/version-notes.md lists what differs on older releases."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 

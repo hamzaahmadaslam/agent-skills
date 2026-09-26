@@ -10,8 +10,8 @@ wp core version
 wp theme list --status=active --fields=name,version --skip-update-check   # the active theme (a child theme if one is used)
 wp theme list --status=parent --fields=name,version --skip-update-check   # its parent, if any
 wp plugin list --fields=name,status,version --skip-update-check
-wp plugin list --status=must-use --fields=name,version
-wp plugin list --status=dropin --fields=name
+wp plugin list --status=must-use --fields=name,version --skip-update-check
+wp plugin list --status=dropin --fields=name --skip-update-check
 wp config get WP_CONTENT_URL    # set only if wp-config.php moves the content folder; otherwise it is wp-content
 ```
 

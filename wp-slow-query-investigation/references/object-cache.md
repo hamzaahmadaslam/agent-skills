@@ -11,7 +11,7 @@ WordPress 7.1.2 tag unless noted.
 - `wp_using_ext_object_cache()` reports whether a persistent cache is in use
   ([load.php L800-L820](https://github.com/WordPress/wordpress-develop/blob/7.1.2/src/wp-includes/load.php#L800-L820));
   `wp cache type` names the implementation, from a guess based on the cache class
-  ([wp cache type](https://developer.wordpress.org/cli/commands/cache/type/)); `wp plugin list --status=dropin` shows
+  ([wp cache type](https://developer.wordpress.org/cli/commands/cache/type/)); `wp plugin list --status=dropin --skip-update-check` shows
   the drop-in. Query Monitor's Object Cache panel shows whether one is in use and the hit rate
   ([query-monitor.md](query-monitor.md)).
 - Adding one is a hosting change. Site Health suggests it on multisite, from 500 autoloaded options or 100,000

@@ -60,7 +60,7 @@ Query Monitor shows the queries of one request with the PHP code that ran them; 
 - It skips the symlink when `QM_DB_SYMLINK` is false, when `DISALLOW_FILE_MODS` is true, or when a `wp-content/db.php`
   already exists ([Activation.php L31-L41](https://github.com/johnbillion/query-monitor/blob/4.0.7/classes/Activation.php#L31-L41)).
   Only one `db.php` can exist: W3 Total Cache, LudicrousDB, HyperDB and SQLite Database Integration use the same file
-  ([db.php symlink](https://querymonitor.com/help/db-php-symlink/)). `wp plugin list --status=dropin` shows which
+  ([db.php symlink](https://querymonitor.com/help/db-php-symlink/)). `wp plugin list --status=dropin --skip-update-check` shows which
   drop-in is installed ([wp plugin list](https://developer.wordpress.org/cli/commands/plugin/list/)).
 - On deactivation it deletes `db.php` only when the file belongs to Query Monitor and the site is not multisite, or
   the deactivation is network-wide

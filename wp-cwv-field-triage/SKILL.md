@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Helper scripts need Node.js 20 or later and no packages. CrUX API queries need a Google Cloud API key that the user exports as CRUX_API_KEY; BigQuery needs a Google Cloud project. Confirming a cause needs WP-CLI read access and a staging copy. Written against WordPress 7.1.2 and web-vitals 6.2.2; references/wordpress-version-notes.md covers older WordPress releases."
 metadata:
   author: Hamza Ahmad Aslam
-  version: "1.0.0"
+  version: "1.0.1"
   last_verified: "2026-09-26"
 ---
 
@@ -48,9 +48,10 @@ skill).
 ## Safety rules
 
 1. Read-only by default. Reading field data, saving HTML, `grep`, and WP-CLI read commands (`wp core version`,
-   `wp plugin list`, `wp theme list`, `wp config get <NAME>`) need no approval. Anything that changes a site (the
-   beacon, a snippet, deactivating a plugin, a setting, a tag) needs the user's approval for that step, with its
-   backup, check and undo stated first. One approval covers one step.
+   `wp plugin list` and `wp theme list` with `--skip-update-check`, which otherwise refreshes the update data from
+   wordpress.org, `wp config get <NAME>`) need no approval. Anything that changes a site (the beacon, a snippet,
+   deactivating a plugin, a setting, a tag) needs the user's approval for that step, with its backup, check and undo
+   stated first. One approval covers one step.
 2. Staging first. Never deactivate plugins or change settings on production to test a guess.
 3. Keys stay with the user. Never ask for the CrUX API key, print it, or write it to a file; commands read
    `$CRUX_API_KEY` from the user's own shell. Never run `wp config list` (it prints database credentials).
@@ -140,7 +141,7 @@ wp core version
 wp theme list --status=active --fields=name,version --skip-update-check
 wp theme list --status=parent --fields=name,version --skip-update-check
 wp plugin list --fields=name,status,version --skip-update-check
-wp plugin list --status=must-use --fields=name,version
+wp plugin list --status=must-use --fields=name,version --skip-update-check
 curl -sL -A "Mozilla/5.0" https://www.example.com/shop/blue-mug/ -o page.html
 node scripts/scan-html.mjs page.html --site=https://www.example.com --lcp=blue-mug-1200x900
 node scripts/wp-owner.mjs --site=https://www.example.com script-urls.txt

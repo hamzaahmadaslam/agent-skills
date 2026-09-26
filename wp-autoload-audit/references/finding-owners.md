@@ -48,7 +48,7 @@ Check in this order and stop at the first match.
   largest options. `grep -rn "class <Class>" wp-content` finds the file that defines it.
 - Check whether the owner is active: `wp plugin list --fields=name,status,version --skip-update-check`, with
   `--status=must-use` and `--status=dropin` for the other two kinds
-  ([wp plugin list](https://developer.wordpress.org/cli/commands/plugin/list/)); `wp theme list` for themes.
+  ([wp plugin list](https://developer.wordpress.org/cli/commands/plugin/list/)); `wp theme list --skip-update-check` for themes.
 
 ### 3. A plugin or theme that is no longer installed
 

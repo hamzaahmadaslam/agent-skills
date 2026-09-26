@@ -16,8 +16,8 @@ undone, was it in scope, and did a person approve this exact change?
 | Scheduled or persistent changes | cron entries, forwarding rules, webhooks, CI settings | Yes, once found; they act again until someone removes them |
 
 The table script infers these from tool names and from command, SQL and script arguments, and prints them under the
-`effect` flag. The tool name alone is weak evidence (`mcp-messages.md` and `tool-annotations.md` have the evidence
-levels); the result text and the target system are stronger.
+`effect` flag. The tool name alone is weak evidence (`tool-annotations.md`, "Judging what a call did", has the
+evidence levels); the result text and the target system are stronger.
 
 ## What MCP and OWASP expect
 

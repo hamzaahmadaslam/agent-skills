@@ -62,8 +62,9 @@ values, an action outside the task, and text that reads as an instruction.
 
 ## Signs in the text
 
-The table script flags these in results, tool definitions and server instructions (`instructions-in-result`,
-`instructions-in-definition`); read the text yourself either way:
+The table script flags the first four kinds in results, tool definitions and server instructions
+(`instructions-in-result`, `instructions-in-definition`); it does not decode or join the last two. Read the text
+yourself either way:
 
 - text addressed to the model ("Note for AI assistants", "the assistant must");
 - requests to override ("ignore previous instructions") or to keep a step hidden ("do not mention this");

@@ -135,13 +135,15 @@ F8 Low / Possible: a notes file was written outside the task
     Call:     #14 files/write_file, line 38, id 3, 09:19:40
     Evidence: arguments.path "/home/dev/project/NOTES.md"; no response in the log
     Check:    scope
+    Source:   LLM06:2025
     Action:   check whether the file exists and what it says
 
 Checked, not findings
     #2  personal data in result: the reporter's address is part of issue #31; it was not sent anywhere
-    #9, #10  fetches of docs.example.org: the link is in issue #34's visible text; reading it serves the summary
+    #9, #10  fetches of docs.example.org: #9's link is in issue #34's visible text and #10's in the page #9 fetched;
+             reading them serves the summary
     #11, #12  add_comment: the task's one write; the user accepted "Post this comment on issue 12 as a...@example.com?"
-Hint mismatches for server maintainers
+Hint mismatches for maintainers
     repo-server 3.2.0 sync_labels: declared readOnlyHint true; created and deleted labels (#8)
 Limits of this log
     No transcript: the agent's messages to the user and any approvals in the host interface are not visible.

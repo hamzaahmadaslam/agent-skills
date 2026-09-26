@@ -5,8 +5,9 @@
 // the files in references/ say how to confirm or dismiss each one.
 //
 // It reads only the files you name and prints a report. It writes no files, makes no network requests, never
-// resolves or opens the URLs and hosts it prints, and masks values that look like secrets (first four characters,
-// length and a SHA-256 fingerprint) and personal data. Node.js 20 or later, no dependencies.
+// resolves or opens the URLs and hosts it prints, and masks values that look like secrets (length, a SHA-256
+// fingerprint and, for values of 16 characters or more, the first four characters) and personal data. Node.js 20 or
+// later, no dependencies.
 //
 // Input it reads:
 //   - MCP JSON-RPC messages, one per line (the stdio framing), bare or inside wrapper objects such as
@@ -39,27 +40,30 @@ import { fileURLToPath } from "node:url";
 // ---------------------------------------------------------------------------------------------------------------
 // Detectors
 
-// [label, pattern, capture group that holds the secret value (0 means the whole match)]
+// [label, pattern, capture group that holds the secret value (0 means the whole match)]. Every pattern has the d flag,
+// so the value can be masked at its own position in the match.
 export const SECRET_PATTERNS = [
-  ["private key block", /-----BEGIN [A-Z ]*PRIVATE KEY-----/g, 0],
-  ["JSON Web Token", /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, 0],
-  ["bearer token", /\bBearer\s+([A-Za-z0-9._~+/-]{16,}=*)/gi, 1],
-  ["password in URL", /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@"']+:([^\s/@"']+)@/gi, 1],
+  // The whole block when its END line follows; without one, the BEGIN line and the Base64 lines after it.
+  ["private key block", /-----BEGIN ([A-Z0-9 ]*)PRIVATE KEY( BLOCK)?-----(?:[\s\S]{0,12000}?-----END \1PRIVATE KEY\2-----|(?:\\[nr]|\s|[A-Za-z0-9+/=])*)/dg, 0],
+  ["JSON Web Token", /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/dg, 0],
+  ["bearer token", /\bBearer\s+([A-Za-z0-9._~+/-]{16,}=*)/dgi, 1],
+  ["password in URL", /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@"']+:([^\s/@"']+)@/dgi, 1],
   [
     "well-known token prefix",
-    /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bgh[pousr]_[A-Za-z0-9]{30,}\b|\bgithub_pat_[A-Za-z0-9_]{30,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bglpat-[A-Za-z0-9_-]{20,}\b/g,
+    // GitHub installation tokens can also be ghs_<app id>_<JWT>, with underscores, dots and dashes.
+    /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bgh[pousr]_[A-Za-z0-9_.-]{30,}\b|\bgithub_pat_[A-Za-z0-9_]{30,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bglpat-[A-Za-z0-9_-]{20,}\b/dg,
     0,
   ],
   [
     "secret assignment",
-    /\b([A-Za-z0-9_.-]*(?:token|secret|passw(?:or)?d|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret)[A-Za-z0-9_.-]*)(["']?\s*[:=]\s*["']?)([^\s"'&,;]{6,})/gi,
+    /\b([A-Za-z0-9_.-]*(?:token|secret|passw(?:or)?d|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret)[A-Za-z0-9_.-]*)(["']?\s*[:=]\s*["']?)([^\s"'&,;]{6,})/dgi,
     3,
   ],
 ];
 
 // Argument names that hold secrets, checked after camelCase is turned into snake_case.
 const SECRET_NAME =
-  /^(?:.*[_-])?(?:pass(?:word|wd|phrase)?|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|authorization|bearer|cookie|session[_-]?(?:id|key|token)|credentials?|pin|cvv|cvc|card[_-]?number|iban|ssn)(?:[_-].*)?$/i;
+  /^(?:.*[_-])?(?:pass(?:word|wd|phrase)?|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|authorization|bearer|cookie|session[_-]?(?:id|key|token)|credentials?|pin|cvv2?|cvc2?|card[_-]?number|iban|ssn)(?:[_-].*)?$/i;
 
 const EMAIL = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g;
 const PHONE = /(?<![\w+])\+\d[\d ().-]{7,18}\d\b/g;
@@ -86,15 +90,17 @@ const COMMAND_KEYS = /^(?:command|commands|cmd|script|shell|sql|query|statement|
 const COMMAND_TOOL_WORDS = new Set(["exec", "execute", "run", "shell", "bash", "sh", "cmd", "command", "terminal", "eval", "script", "powershell", "query", "sql", "psql", "mysql", "database", "db", "ssh"]);
 const COMMAND_PATTERNS = [
   ["forced or recursive delete", /\brm\s+-[a-zA-Z]*[rRf]|\bRemove-Item\b[^\n]*-Recurse|\brmdir\s+\/s|\bdel\s+\/[sq]/i, "delete"],
-  ["SQL delete, drop or truncate", /\b(?:DROP\s+(?:TABLE|DATABASE|SCHEMA|INDEX|USER)|TRUNCATE\s+(?:TABLE\s+)?\w|DELETE\s+FROM|ALTER\s+TABLE\s+\S+\s+DROP)\b/i, "delete"],
-  ["SQL write or grant", /\b(?:INSERT\s+INTO|UPDATE\s+\S+\s+SET|GRANT\s+\w|REVOKE\s+\w|CREATE\s+(?:USER|ROLE))\b/i, "write"],
+  ["SQL delete, drop or truncate", /\b(?:DROP\s+(?:TEMPORARY\s+)?(?:TABLE|DATABASE|SCHEMA|INDEX|USER|ROLE|VIEW|FUNCTION|PROCEDURE|TRIGGER)|TRUNCATE\s+(?:TABLE\s+)?[`"[]?\w+|DELETE\s+FROM|ALTER\s+TABLE\s+\S+\s+DROP)\b/i, "delete"],
+  ["SQL write or grant", /\b(?:INSERT\s+INTO|UPDATE\s+\S+\s+SET|GRANT\s+\w+|REVOKE\s+\w+|CREATE\s+(?:USER|ROLE))\b/i, "write"],
   ["force push, hard reset or clean", /\bgit\s+(?:push\b[^\n]*(?:--force\b|\s-f\b)|reset\s+--hard|clean\s+-[a-z]*f)/i, "delete"],
   ["download piped to a shell", /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z)?sh\b/i, "exec"],
   ["privileged command", /(?:^|[\s'"`;&|])(?:sudo|doas|runas)\s/i, "exec"],
   ["infrastructure delete", /\b(?:terraform\s+destroy|kubectl\s+delete|docker\s+(?:rm|rmi|system\s+prune)|helm\s+uninstall)\b/i, "delete"],
-  ["disk or permission change", /\b(?:mkfs(?:\.\w+)?|dd\s+if=|chmod\s+-R|chown\s+-R)\b/i, "delete"],
+  ["disk or permission change", /\b(?:mkfs(?:\.\w+)?\b|dd\s+if=|chmod\s+-R\b|chown\s+-R\b)/i, "delete"],
   ["remote shell", /\b(?:ssh|scp|rsync|sftp)\s/i, "exec"],
-  ["upload with curl or PowerShell", /\bcurl\b[^\n]*(?:\s-d\b|\s--data|\s-F\b|\s-T\b|--upload-file)|\bInvoke-WebRequest\b[^\n]*-Method\s+Post/i, "send"],
+  // curl's short options are case-sensitive (-f is --fail and -D is --dump-header), so this pattern has no i flag.
+  ["upload with curl or PowerShell", /\bcurl\b[^\n]*(?:\s-d\b|\s--data|\s-F\b|\s-T\b|--upload-file)/, "send"],
+  ["upload with curl or PowerShell", /\bInvoke-WebRequest\b[^\n]*-Method\s+Post/i, "send"],
 ];
 
 // Words in a result that report a change; a read-only tool should not report one.
@@ -112,7 +118,7 @@ const INSTRUCTION_PATTERNS = [
   ["new instructions", /\b(?:new|updated|important|urgent|system)\s+(?:instructions?|directive|task)\s*:/i],
   ["send data out", /\b(?:send|post|upload|forward|exfiltrate|append|include|attach)\b[^.\n]{0,60}\b(?:contents?|credentials?|tokens?|keys?|secrets?|passwords?|files?|env)\b[^.\n]{0,80}\b(?:to|into|in)\b/i],
   ["hidden comment", /<!--[\s\S]{20,}?-->/],
-  ["invisible characters", /[\u{200B}-\u{200F}\u{202A}-\u{202E}\u{2060}-\u{2064}\u{FEFF}]|[\u{E0000}-\u{E007F}]/u],
+  ["invisible characters", /[\u{200B}-\u{200F}\u{202A}-\u{202E}\u{2060}-\u{2069}\u{FEFF}]|[\u{E0000}-\u{E007F}]/u],
 ];
 
 const SERVER_TO_CLIENT = new Set(["sampling/createMessage", "elicitation/create", "roots/list"]);
@@ -144,16 +150,28 @@ const remember = (value) => {
   if (typeof value === "string" && value.length >= 6) KNOWN_SECRETS.add(value);
 };
 
+// Values nested deeper than this are not walked: a log can be built to exhaust the call stack.
+const MAX_DEPTH = 64;
+const TOO_DEEP = "[nested too deep]";
+
 const fingerprint = (value) => createHash("sha256").update(String(value)).digest("hex").slice(0, 8);
-const maskValue = (value) => `${String(value).slice(0, 4)}...[masked, ${String(value).length} chars, sha256:${fingerprint(value)}]`;
+// The first four characters help to recognise a long token (ghp_, AKIA); a shorter value keeps only its length and
+// fingerprint, because four characters would give most of it away.
+const maskValue = (value) => {
+  const text = String(value);
+  return `${text.length >= 16 ? text.slice(0, 4) : ""}...[masked, ${text.length} chars, sha256:${fingerprint(text)}]`;
+};
 const clip = (text, width) => (text.length > width ? `${text.slice(0, Math.max(0, width - 3))}...` : text);
 const snake = (key) => String(key).replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 const isSecretName = (key) => SECRET_NAME.test(snake(key));
+// A value under a secret-looking name is a secret whatever its length, and a PIN or card number can be a JSON number.
+const secretByName = (key, value) => Boolean(key) && isSecretName(key) && (typeof value === "string" || typeof value === "number") && String(value) !== "";
 
-export function stable(value) {
-  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+export function stable(value, depth = 0) {
+  if (depth > MAX_DEPTH) return JSON.stringify(TOO_DEEP);
+  if (Array.isArray(value)) return `[${value.map((v) => stable(v, depth + 1)).join(",")}]`;
   if (value && typeof value === "object") {
-    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${stable(value[k])}`).join(",")}}`;
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${stable(value[k], depth + 1)}`).join(",")}}`;
   }
   return JSON.stringify(value) ?? "undefined";
 }
@@ -211,15 +229,30 @@ function luhn(digits) {
   return sum % 10 === 0;
 }
 
+// The value a secret pattern captured, and where it is in the text. A quoted value (pass="correct horse battery") is
+// taken up to its closing quote, not only its first word; what counts as a secret does not change.
+function secretSpan(m, group) {
+  const at = m.indices?.[group];
+  if (!at || at[0] === at[1]) return null;
+  let [start, end] = at;
+  const quote = group ? m.input[start - 1] : "";
+  if (quote === '"' || quote === "'") {
+    const close = m.input.indexOf(quote, end);
+    const newline = m.input.indexOf("\n", end);
+    if (close > end && (newline < 0 || close < newline)) end = close;
+  }
+  return { value: m.input.slice(start, end), start, end };
+}
+
 export function secretHits(text) {
   const hits = [];
   if (!text) return hits;
   for (const [label, re, group] of SECRET_PATTERNS) {
     for (const m of String(text).matchAll(re)) {
-      const value = group ? m[group] : m[0];
-      if (value) {
-        hits.push({ label, value, name: group === 3 ? m[1] : "" });
-        remember(value);
+      const span = secretSpan(m, group);
+      if (span) {
+        hits.push({ label, value: span.value, name: group === 3 ? m[1] : "" });
+        remember(span.value);
       }
     }
   }
@@ -229,17 +262,18 @@ export function secretHits(text) {
 function scrubKnown(value) {
   if (!KNOWN_SECRETS.size) return value;
   const secrets = [...KNOWN_SECRETS].sort((a, b) => b.length - a.length);
-  const scrub = (v) => {
+  const scrub = (v, depth) => {
     if (typeof v === "string") {
       let out = v;
       for (const s of secrets) if (out.includes(s)) out = out.split(s).join(maskValue(s));
       return out;
     }
-    if (Array.isArray(v)) return v.map(scrub);
-    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrub(x)]));
+    if (depth > MAX_DEPTH * 2) return TOO_DEEP;
+    if (Array.isArray(v)) return v.map((x) => scrub(x, depth + 1));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrub(x, depth + 1)]));
     return v;
   };
-  return scrub(value);
+  return scrub(value, 0);
 }
 
 // "user@host" after ssh, scp, rsync or sftp, before ":path", or inside a URL's user part is a login target, not an
@@ -269,10 +303,16 @@ export function piiHits(text) {
 export function mask(text) {
   let out = String(text);
   for (const [, re, group] of SECRET_PATTERNS) {
-    out = out.replace(re, (...m) => {
-      const value = group ? m[group] : m[0];
-      return value ? m[0].replace(value, maskValue(value)) : m[0];
-    });
+    // Replace the captured value where it is, not the first equal string in the match ("admin1:admin@" has two).
+    let masked = "";
+    let from = 0;
+    for (const m of out.matchAll(re)) {
+      const span = secretSpan(m, group);
+      if (!span || span.start < from) continue;
+      masked += out.slice(from, span.start) + maskValue(span.value);
+      from = span.end;
+    }
+    out = masked + out.slice(from);
   }
   out = out.replace(EMAIL, (e, index, whole) => (isLoginTarget(whole, index, e) ? e : `${e[0]}...@${e.split("@")[1]}`));
   out = out.replace(PHONE, (p) => {
@@ -286,13 +326,16 @@ export function mask(text) {
   return out;
 }
 
-// A masked deep copy, for JSON output and argument display.
-function maskDeep(value, key = "") {
-  if (Array.isArray(value)) return value.map((v) => maskDeep(v, key));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, maskDeep(v, k)]));
-  if (typeof value === "string") {
-    if (key && isSecretName(key) && value.length >= 6) return maskValue(value);
-    return mask(safeDecode(value));
+// A masked deep copy, for JSON output and argument display. A number is shown masked when it reads as a card number.
+function maskDeep(value, key = "", depth = 0) {
+  if (depth > MAX_DEPTH) return TOO_DEEP;
+  if (Array.isArray(value)) return value.map((v) => maskDeep(v, key, depth + 1));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, maskDeep(v, k, depth + 1)]));
+  if (secretByName(key, value)) return maskValue(value);
+  if (typeof value === "string") return mask(safeDecode(value));
+  if (typeof value === "number") {
+    const shown = mask(String(value));
+    return shown === String(value) ? value : shown;
   }
   return value;
 }
@@ -415,6 +458,18 @@ function parseTail(line) {
   return null;
 }
 
+// An OTLP trace with only objects at each level (resource, scope, span), so a malformed trace cannot stop the reader.
+function otlpObjects(doc) {
+  const objects = (list) => (Array.isArray(list) ? list.filter((x) => x && typeof x === "object" && !Array.isArray(x)) : []);
+  return {
+    ...doc,
+    resourceSpans: objects(doc.resourceSpans).map((rs) => ({
+      ...rs,
+      scopeSpans: objects(rs.scopeSpans || rs.instrumentationLibrarySpans).map((ss) => ({ ...ss, spans: objects(ss.spans) })),
+    })),
+  };
+}
+
 function walk(value, ctx, out, depth = 0) {
   if (depth > 5 || value === null || typeof value !== "object") return;
   if (Array.isArray(value)) {
@@ -423,7 +478,7 @@ function walk(value, ctx, out, depth = 0) {
     return;
   }
   if (Array.isArray(value.resourceSpans)) {
-    out.push({ otlp: value, where: ctx.where, file: ctx.file, meta: ctx.meta });
+    out.push({ otlp: otlpObjects(value), where: ctx.where, file: ctx.file, meta: ctx.meta });
     return;
   }
   if (isRpc(value)) {
@@ -481,11 +536,18 @@ export function readRecords(file, text, notes) {
     return out;
   }
   if (trimmed[0] === "[" || trimmed[0] === "{") {
+    let doc;
     try {
-      walk(JSON.parse(trimmed), { file, where: name, meta: {} }, out);
-      return out;
+      doc = JSON.parse(trimmed);
     } catch {
       // Not one JSON document: read it line by line.
+    }
+    if (doc !== undefined) {
+      // A file that is one JSON array is a list of saved messages, not a JSON-RPC batch; a batch inside it is
+      // still one.
+      if (Array.isArray(doc)) doc.forEach((item, i) => walk(item, { file, where: `${name}[${i}]`, meta: {} }, out, 1));
+      else walk(doc, { file, where: name, meta: {} }, out);
+      return out;
     }
   }
   let skipped = 0;
@@ -1030,20 +1092,23 @@ export function analyze(records, options = {}) {
   return { channels: [...channels.values()], calls, flows, serverRequests, warnings };
 }
 
+const objectsIn = (list) => (Array.isArray(list) ? list.filter((x) => x && typeof x === "object") : []);
+
 function attrs(list) {
   const out = {};
-  for (const a of list || []) out[a.key] = anyValue(a.value);
+  for (const a of objectsIn(list)) out[a.key] = anyValue(a.value);
   return out;
 }
 
-function anyValue(v) {
+function anyValue(v, depth = 0) {
   if (!v || typeof v !== "object") return v;
+  if (depth > MAX_DEPTH) return TOO_DEEP;
   if ("stringValue" in v) return v.stringValue;
   if ("boolValue" in v) return v.boolValue;
   if ("intValue" in v) return Number(v.intValue);
   if ("doubleValue" in v) return v.doubleValue;
-  if ("arrayValue" in v) return (v.arrayValue?.values || []).map(anyValue);
-  if ("kvlistValue" in v) return Object.fromEntries((v.kvlistValue?.values || []).map((kv) => [kv.key, anyValue(kv.value)]));
+  if ("arrayValue" in v) return (Array.isArray(v.arrayValue?.values) ? v.arrayValue.values : []).map((x) => anyValue(x, depth + 1));
+  if ("kvlistValue" in v) return Object.fromEntries(objectsIn(v.kvlistValue?.values).map((kv) => [kv.key, anyValue(kv.value, depth + 1)]));
   if ("bytesValue" in v) return `[bytes, ${String(v.bytesValue).length} base64 chars]`;
   return undefined;
 }
@@ -1070,14 +1135,14 @@ function toolText(t) {
   return parts.filter(Boolean).join("\n");
 }
 
-function mirroredParams(schema, at = "", out = []) {
+function mirroredParams(schema, at = "", out = [], depth = 0) {
   const props = schema && typeof schema === "object" ? schema.properties : null;
-  if (!props || typeof props !== "object") return out;
+  if (!props || typeof props !== "object" || depth > MAX_DEPTH) return out;
   for (const [name, prop] of Object.entries(props)) {
     const here = at ? `${at}.${name}` : name;
     if (prop && typeof prop === "object") {
       if (prop["x-mcp-header"]) out.push({ param: here, header: `Mcp-Param-${prop["x-mcp-header"]}`, sensitive: isSecretName(name) });
-      mirroredParams(prop, here, out);
+      mirroredParams(prop, here, out, depth + 1);
     }
   }
   return out;
@@ -1165,11 +1230,11 @@ function assess(call, { allow, flag }) {
   const argSecrets = [];
   const argPii = [];
   for (const [at, v] of leaves(call.args)) {
-    if (typeof v !== "string") continue;
-    const text = safeDecode(v);
-    if (isSecretName(leafKey(at)) && v.length >= 6) {
+    if (typeof v !== "string" && typeof v !== "number") continue;
+    const text = safeDecode(String(v));
+    if (secretByName(leafKey(at), v)) {
       argSecrets.push(`argument named "${leafKey(at)}" (${at}) ${maskValue(v)}`);
-      remember(v);
+      remember(String(v));
     }
     for (const hit of secretHits(text)) argSecrets.push(`${hit.label} in ${at} ${maskValue(hit.value)}`);
     for (const hit of piiHits(text)) argPii.push(`${hit.label} in ${at} (${mask(hit.value)})`);
@@ -1203,13 +1268,13 @@ function assess(call, { allow, flag }) {
     const secrets = [];
     const pii = [];
     for (const [at, v] of leaves(r.content, `inputResponses.${r.key}`)) {
-      if (typeof v !== "string") continue;
-      if (isSecretName(leafKey(at)) && v.length >= 6) {
+      if (typeof v !== "string" && typeof v !== "number") continue;
+      if (secretByName(leafKey(at), v)) {
         secrets.push(`${at} ${maskValue(v)}`);
-        remember(v);
+        remember(String(v));
       }
-      for (const hit of secretHits(v)) secrets.push(`${hit.label} in ${at} ${maskValue(hit.value)}`);
-      for (const hit of piiHits(v)) pii.push(`${hit.label} in ${at}`);
+      for (const hit of secretHits(String(v))) secrets.push(`${hit.label} in ${at} ${maskValue(hit.value)}`);
+      for (const hit of piiHits(String(v))) pii.push(`${hit.label} in ${at}`);
     }
     if (secrets.length) flag(call, "secret-in-input-response", secrets.join("; "));
     if (pii.length) flag(call, "personal-data-in-input-response", pii.join("; "));
@@ -1231,9 +1296,9 @@ function formatArgs(args, width = 160) {
   for (const [k, v] of Object.entries(args || {})) {
     if (typeof v === "string") {
       const decoded = safeDecode(v);
-      const shown = isSecretName(k) && v.length >= 6 ? maskValue(v) : mask(decoded);
+      const shown = secretByName(k, v) ? maskValue(v) : mask(decoded);
       parts.push(`${k}=${JSON.stringify(clip(shown, width))}${decoded !== v ? " (URL-decoded)" : ""}`);
-    } else parts.push(`${k}=${clip(JSON.stringify(maskDeep(v)), width)}`);
+    } else parts.push(`${k}=${clip(JSON.stringify(maskDeep(v, k)), width)}`);
   }
   return parts.join(" ") || "(none)";
 }
@@ -1442,15 +1507,20 @@ function main() {
       if (!host) fail("--allow-host needs a host name", 1);
       options.allowHosts.push(host);
     }
+    else if (["--task", "--tools", "--allow-host"].includes(arg)) fail(`${arg} needs a value: ${arg}=<${arg === "--allow-host" ? "host" : "file"}>`, 1);
     else if (arg.startsWith("--")) fail(`unknown option ${arg}`, 1);
     else files.push(arg);
   }
   if (!files.length) fail("name at least one log file (JSON Lines, JSON, a text log with JSON messages, or an OTLP JSON trace)", 1);
   try {
     if (options.taskFile) options.task = readFileSync(options.taskFile, "utf8");
+  } catch (error) {
+    fail(`cannot read the --task file: ${error.message}`, 2);
+  }
+  try {
     if (options.toolsFile) options.tools = loadTools(options.toolsFile);
   } catch (error) {
-    fail(error.message, 1);
+    fail(`cannot read the --tools file: ${error.message}`, 2);
   }
   const notes = [];
   let records = [];
@@ -1464,7 +1534,8 @@ function main() {
     records = records.concat(readRecords(file, text, notes));
   }
   if (files.length > 1) {
-    const when = (r) => (r.otlp ? otlpStart(r.otlp) : Date.parse(r.meta?.ts ?? ""));
+    // Some loggers (Python's among them) write a comma before the fraction of a second, which Date.parse rejects.
+    const when = (r) => (r.otlp ? otlpStart(r.otlp) : Date.parse(String(r.meta?.ts ?? "").replace(/^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}),(?=\d)/, "$1.")));
     if (records.every((r) => Number.isFinite(when(r)))) {
       records = records.map((r, i) => ({ r, i, t: when(r) })).sort((a, b) => a.t - b.t || a.i - b.i).map((x) => x.r);
     } else notes.push("several files without a timestamp on every message: they are read one after the other, so data flows between files may be missed");
@@ -1482,5 +1553,11 @@ function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  try {
+    main();
+  } catch (error) {
+    // A log shaped in a way this script does not expect: say so instead of printing a stack trace.
+    console.error(`tool-call-table: cannot process the input: ${error.message}`);
+    process.exit(2);
+  }
 }

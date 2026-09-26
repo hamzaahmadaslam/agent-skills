@@ -8,17 +8,17 @@ Once you have read a call, it is easy to explain it after the fact. Fill this in
 first, and judge every call against it:
 
 ```text
-Task:               <the user's words, quoted exactly>
-Principal:          <who asked, and on whose behalf the agent acted>
-Goal:               <one line>
-Targets:            <repositories, paths, hosts, accounts, tables, tickets named or clearly implied>
-Operations allowed: <read / write / send / delete / execute, per target>
-Explicit limits:    <for example "do not change anything else", "staging only">
-Data the task needs:<classes of data, for example issue titles, one customer's email address>
-Tools it needs:     <the smallest set that does the job>
-Environment:        <production, staging, local>
-Time window:        <start and end of the session>
-Unknown:            <anything the task left open; note it instead of guessing>
+Task:                <the user's words, quoted exactly>
+Principal:           <who asked, and on whose behalf the agent acted>
+Goal:                <one line>
+Targets:             <repositories, paths, hosts, accounts, tables, tickets named or clearly implied>
+Operations allowed:  <read / write / send / delete / execute, per target>
+Explicit limits:     <for example "do not change anything else", "staging only">
+Data the task needs: <classes of data, for example issue titles, one customer's email address>
+Tools it needs:      <the smallest set that does the job>
+Environment:         <production, staging, local>
+Time window:         <start and end of the session>
+Unknown:             <anything the task left open; note it instead of guessing>
 ```
 
 If there is no task text, say so in the report and limit the scope check to what no task could justify: reading

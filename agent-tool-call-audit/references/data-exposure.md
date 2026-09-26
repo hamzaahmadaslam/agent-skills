@@ -79,8 +79,9 @@ rotation depends on where the context and logs are stored; say so and leave the 
 
 ## Recording exposed data without exposing it again
 
-- Refer to a value by call number, argument path and a masked form: the first four characters, the length and a
-  SHA-256 fingerprint (`exam...[masked, 30 chars, sha256:73ac1319]`, as the table script prints it). The owner can
+- Refer to a value by call number, argument path and a masked form: the length, a SHA-256 fingerprint and, for values
+  of 16 characters or more, the first four characters (`exam...[masked, 30 chars, sha256:73ac1319]`, as the table
+  script prints it; a shorter value shows no characters, since four would give most of it away). The owner can
   match the fingerprint against their own copy with `printf '%s' "$VALUE" | sha256sum` and compare the first eight
   hex characters.
 - Never paste a full secret, a full personal record or file contents into the report, a ticket or a chat.

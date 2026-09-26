@@ -59,7 +59,8 @@ A pull request that corrects a fact changes the reference text, its source URL a
 ## Maintenance
 
 Each skill is re-checked against its sources every quarter, and a link check runs on the first day of every month
-and on every pull request. [MAINTENANCE.md](MAINTENANCE.md) has the procedure.
+and on every pull request. A script check parses every helper script on every pull request and push to `main`.
+[MAINTENANCE.md](MAINTENANCE.md) has the procedure.
 
 ## License
 

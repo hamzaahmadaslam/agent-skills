@@ -83,6 +83,25 @@ When the check fails:
 4. A host that blocks automated requests but works in a browser can be excluded with a narrow regular expression in
    a `.lycheeignore` file at the repository root. Keep that list short and review it every quarter.
 
+## The script check
+
+`.github/workflows/scripts.yml` checks the helper scripts in every skill's `scripts/` folder:
+
+- **When:** on every pull request, on every push to `main`, and on demand (Actions tab, "Scripts" workflow, "Run
+  workflow").
+- **What:** `node --check` on each `.mjs` file with Node.js 20 (the oldest version the helpers support), `bash -n`
+  and `shellcheck -S warning` on each `.sh` file, and `php -l` on each `.php` file. None of them runs a helper. It
+  also runs `tool-call-table.mjs` on `agent-tool-call-audit/examples/repo-session.jsonl` and compares the output
+  with `examples/repo-session-table.txt`, which `references/severity-and-report.md` presents as that output.
+- **Pass or fail:** any syntax error, ShellCheck warning or difference in the example output fails the run.
+- **Secrets:** none. The workflow has read-only permission to the repository contents.
+- **Pinned versions:** `actions/checkout@v7` and `actions/setup-node@v7` (major versions). PHP and ShellCheck are the
+  ones on the `ubuntu-latest` runner image.
+
+When a script change alters the example output on purpose, regenerate `examples/repo-session-table.txt` with the
+command in `references/severity-and-report.md`, and check that the worked example report there still matches it, in
+the same commit.
+
 ## Adding a skill
 
 1. Create `<name>/SKILL.md`. The folder name and the `name` field match: lowercase letters, digits and single

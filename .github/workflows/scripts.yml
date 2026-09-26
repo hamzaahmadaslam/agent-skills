@@ -1,0 +1,39 @@
+name: Scripts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The helpers need Node.js 20 or later, so they are checked on the oldest version they support.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      # Parses every helper without running it. PHP and ShellCheck come with the runner image.
+      - name: Syntax
+        run: |
+          set -e
+          for f in */scripts/*.mjs; do node --check "$f"; done
+          for f in */scripts/*.sh; do bash -n "$f"; done
+          for f in */scripts/*.php; do php -l "$f"; done
+
+      - name: ShellCheck
+        run: shellcheck -S warning */scripts/*.sh
+
+      # references/severity-and-report.md presents this file as the script's output for the example log.
+      - name: Example output
+        working-directory: agent-tool-call-audit
+        run: |
+          node scripts/tool-call-table.mjs examples/repo-session.jsonl --task=examples/repo-task.txt > "$RUNNER_TEMP/table.txt"
+          diff -u examples/repo-session-table.txt "$RUNNER_TEMP/table.txt"

@@ -56,7 +56,7 @@ SELECT COALESCE(SUM(option_name NOT LIKE '\_transient\_timeout\_%' AND option_na
 FROM {prefix}options
 WHERE option_name LIKE '\_transient\_%' OR option_name LIKE '\_site\_transient\_%';
 
--- name: Expired transients (value rows whose timeout has passed), site and network
+-- name: Expired transients (value rows whose timeout has passed) in the options table (network transients of a multisite are in sitemeta, not counted)
 SELECT 'transient' AS kind, COUNT(*) AS expired
 FROM {prefix}options t
 JOIN {prefix}options o ON o.option_name = CONCAT('_transient_timeout_', SUBSTRING(t.option_name, 12))

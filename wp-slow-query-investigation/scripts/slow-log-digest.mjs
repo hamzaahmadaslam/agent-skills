@@ -125,6 +125,8 @@ function newEntry() {
 async function readFile(file, onLine) {
   const input = createReadStream(file);
   const stream = file.endsWith('.gz') ? input.pipe(createGunzip()) : input;
+  // pipe() does not pass on errors: a file that cannot be opened must reach the reader below, not crash the process.
+  if (stream !== input) input.once('error', (err) => stream.destroy(err));
   const rl = createInterface({ input: stream, crlfDelay: Infinity });
   let count = 0;
   for await (const raw of rl) {

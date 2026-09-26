@@ -35,7 +35,7 @@ order key; the helper scripts never print it.
 | Request | Sent when | Server work | Source |
 | --- | --- | --- | --- |
 | `GET /checkout/` | Page view | Page render that also runs the Store API cart and checkout routes internally to embed their data in the page, so the page's server time includes a full cart and shipping calculation | [Blocks Checkout.php L579-L583](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Blocks/BlockTypes/Checkout.php#L579-L583); [Hydration.php L97](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Blocks/Domain/Services/Hydration.php#L97) |
-| `POST /wp-json/wc/store/v1/batch` (holds `cart/update-customer`) | Address field changes, debounced | Customer and cart update, returns the full cart | [data flow guide](https://developer.woocommerce.com/docs/block-development/cart-and-checkout-blocks/overview-of-data-flow/) |
+| `POST /wp-json/wc/store/v1/batch` (holds `cart/update-customer`) | Address field changes, debounced | Customer and cart update, returns the full cart | [data flow guide](https://developer.woocommerce.com/docs/block-development/reference/overview-of-data-flow/) |
 | `PUT /wp-json/wc/store/v1/checkout` | Additional checkout fields change | Stores the fields; since 10.9.0 in the customer session unless an unpaid order exists | same guide; [Checkout.php L360-L458](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/StoreApi/Routes/V1/Checkout.php#L360-L458) |
 | Store API coupon and `cart/select-shipping-rate` calls | Coupon applied, shipping method changed | Cart update, returns the full cart | same guide |
 | none | Payment method changed | Nothing is sent until the order is placed | same guide |
@@ -100,8 +100,8 @@ Since 9.9.0 both flows log each step of placing an order
   ([L70-L77](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/wc-order-step-logger-functions.php#L70-L77)),
   whatever the threshold. In the 11.1.2 Store API flow, steps 4 to 9 and the draft-order helper carry the order
   ([Checkout.php L590-L711, L791-L862](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/StoreApi/Routes/V1/Checkout.php#L590-L711));
-  in the classic flow, steps 4 and 5
-  ([class-wc-checkout.php L1422-L1432](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/class-wc-checkout.php#L1422-L1432)).
+  in the classic flow, steps 4 and 5, and 6B when the order needs no payment
+  ([class-wc-checkout.php L1197-L1204, L1422-L1432](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/class-wc-checkout.php#L1422-L1432)).
 - Each save runs the order save hooks again (see [order-hooks.md](order-hooks.md#hooks-that-run-on-every-order-save)).
 - After a clean finish the logger saves the order once more to mark its logs for deletion and queues a batch processor
   (Action Scheduler) that deletes them

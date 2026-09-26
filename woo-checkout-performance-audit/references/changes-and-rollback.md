@@ -187,5 +187,7 @@ add_filter(
   files, which also drops actions scheduled since the backup, so take the backup right before and run it at a quiet
   hour.
 - Pending backlog: `wp action-scheduler run --batch-size=100 --batches=10` runs due actions now, with their side
-  effects (emails, webhooks, API calls). It is the queue's normal work, done sooner; there is no undo. Set up the
-  runner itself with the `wp-cron-action-scheduler-health` skill.
+  effects (emails, webhooks, API calls). It is the queue's normal work, done sooner; there is no undo. Backup: a full
+  database backup, which restores what the actions changed in the database but not the emails, webhooks or API calls
+  they sent. Check: the pending and due counts fall and the failed count does not rise. Set up the runner itself with
+  the `wp-cron-action-scheduler-health` skill.

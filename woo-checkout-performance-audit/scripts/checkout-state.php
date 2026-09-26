@@ -194,8 +194,11 @@ foreach ( $wcpa_options as $wcpa_option ) {
 	$wcpa_line( $wcpa_option, get_option( $wcpa_option, null ) );
 }
 $wcpa_scheduler = 'Automattic\\WooCommerce\\Internal\\Admin\\Schedulers\\OrdersScheduler';
-if ( class_exists( $wcpa_scheduler ) && method_exists( $wcpa_scheduler, 'is_scheduled_import_enabled' ) ) {
+// Public since WooCommerce 11.0; private in 10.5 to 10.9, where calling it would be a fatal error.
+if ( is_callable( array( $wcpa_scheduler, 'is_scheduled_import_enabled' ) ) ) {
 	$wcpa_line( 'Analytics updates', call_user_func( array( $wcpa_scheduler, 'is_scheduled_import_enabled' ) ) ? 'Scheduled' : 'Immediately' );
+} elseif ( class_exists( $wcpa_scheduler ) && method_exists( $wcpa_scheduler, 'is_scheduled_import_enabled' ) ) {
+	$wcpa_line( 'Analytics updates', 'not readable before WooCommerce 11.0; see the two analytics options above' );
 }
 
 // Features.

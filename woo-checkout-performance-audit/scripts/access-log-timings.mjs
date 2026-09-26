@@ -179,8 +179,10 @@ export function createAggregator(opts) {
 }
 
 async function readFile(path, onLine) {
-  let stream = createReadStream(path);
-  if (path.endsWith(".gz")) stream = stream.pipe(createGunzip());
+  const file = createReadStream(path);
+  const stream = path.endsWith(".gz") ? file.pipe(createGunzip()) : file;
+  // pipe() does not pass on errors: a missing .gz file must reach the reader below, not crash the process.
+  if (stream !== file) file.once("error", (err) => stream.destroy(err));
   const rl = createInterface({ input: stream, crlfDelay: Infinity });
   for await (const line of rl) onLine(line);
 }

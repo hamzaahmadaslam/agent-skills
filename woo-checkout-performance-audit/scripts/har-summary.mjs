@@ -202,6 +202,7 @@ function printText(s) {
   for (const e of [...s.endpoints].sort((a, b) => b.count - a.count)) {
     console.log(`${pad(e.name, 44)} ${pad(e.count, 6, true)} ${pad(e.errors, 7, true)} ${pad(e.wait_median_ms, 9, true)} ${pad(e.wait_max_ms, 9, true)} ${pad(e.total_median_ms, 10, true)} ${pad(e.total_max_ms, 10, true)}`);
   }
+  if (s.endpoints.length) console.log("p50 is the nearest-rank median: with an even count, the lower of the two middle values.");
 
   console.log("\n== Hosts (by KB transferred, top 20) ==");
   console.log(`${pad("host", 40)} ${pad("party", 6)} ${pad("requests", 9, true)} ${pad("KB", 8, true)} ${pad("script KB", 10, true)} ${pad("time sum ms", 12, true)}`);

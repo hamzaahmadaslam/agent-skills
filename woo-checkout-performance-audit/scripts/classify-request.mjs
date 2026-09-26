@@ -11,16 +11,18 @@ const STATIC_EXTENSIONS = /\.(?:js|mjs|css|map|png|jpe?g|gif|webp|avif|svg|ico|w
 const CHECKOUT_AJAX = new Set(["update_order_review", "checkout", "apply_coupon", "remove_coupon"]);
 
 /**
- * Normalise a Store API or REST route: keep the first segments, replace IDs and keys.
+ * Normalise a Store API or REST route: keep the first segments, replace IDs and keys. WooCommerce registers every
+ * route both with and without the version, so "/wc/store/v1/cart" and "/wc/store/cart" get the same name.
  * "/wc/store/v1/cart/items/9f86d081884c7d659a2feaa0c55ad015" -> "cart/items/:id"
  */
 function storeRoute(route) {
   const parts = route
     .replace(/^\/+|\/+$/g, "")
     .split("/")
-    .slice(3) // drop "wc", "store", "v1"
-    .map((p) => (/^\d+$/.test(p) || /^[a-f0-9]{16,}$/i.test(p) || p.length > 40 ? ":id" : p));
-  return parts.slice(0, 3).join("/") || "(root)";
+    .slice(2); // drop "wc", "store"
+  if (/^v\d+$/.test(parts[0] || "")) parts.shift(); // and the version, when there is one
+  const named = parts.map((p) => (/^\d+$/.test(p) || /^[a-f0-9]{16,}$/i.test(p) || p.length > 40 ? ":id" : p));
+  return named.slice(0, 3).join("/") || "(root)";
 }
 
 function restNamespace(route) {
@@ -64,7 +66,7 @@ export function classifyRequest(method, target, options = {}) {
 
   const restRoute = q.get("rest_route") || (path.match(/\/wp-json(\/.*)$/) || [])[1];
   if (restRoute) {
-    if (/^\/?wc\/store\//.test(restRoute)) return { name: `store-api ${m} ${storeRoute(restRoute)}`, group: "store-api" };
+    if (/^\/?wc\/store(?:\/|$)/.test(restRoute)) return { name: `store-api ${m} ${storeRoute(restRoute)}`, group: "store-api" };
     return { name: `rest ${restNamespace(restRoute)}`, group: "rest" };
   }
 

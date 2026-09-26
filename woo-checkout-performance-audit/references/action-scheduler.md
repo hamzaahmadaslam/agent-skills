@@ -74,7 +74,7 @@ in this collection; this file covers what the queue does to checkout.
 
 - Administrators see "past-due actions found; something may be wrong" when at least 1 pending action is more than
   1 day past its date (filters `action_scheduler_pastdue_actions_seconds`, `action_scheduler_pastdue_actions_min`)
-  ([ActionScheduler_AdminView.php L142-L241](https://github.com/woocommerce/action-scheduler/blob/4.0.0/classes/ActionScheduler_AdminView.php#L164-L241)).
+  ([ActionScheduler_AdminView.php L142-L241](https://github.com/woocommerce/action-scheduler/blob/4.0.0/classes/ActionScheduler_AdminView.php#L142-L241)).
 - The FAQ calls a few past-due actions normal and several over a day old a sign of trouble
   ([FAQ](https://actionscheduler.org/faq/)).
 

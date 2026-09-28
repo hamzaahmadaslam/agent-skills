@@ -16,6 +16,8 @@ They hold no API keys, passwords or tokens, and no skill asks you for one.
 - Helper scripts live in a skill's `scripts/` folder, and every one of them is read-only. A helper reads the files
   you point it at, or runs read-only commands such as SQL `SELECT` statements or WP-CLI read commands, and prints
   the result. No helper writes to a site, a database or the files it reads, and no helper makes network requests.
+  One helper writes a new file: `wp-full-site-scan/scripts/fix-export.mjs` saves a corrected copy of a database dump
+  to the path you give it. It refuses to overwrite an existing file or the input, and never changes the input.
 - A skill may tell the agent to run a third-party tool, such as PHP_CodeSniffer or WP-CLI. Those tools come from
   their own projects and are installed only when you agree to it.
 - A skill that changes a live site states a backup step and a rollback step first, prefers a dry run, and tells the

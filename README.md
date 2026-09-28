@@ -1,9 +1,10 @@
 # Agent skills
 
-Ten skills for coding agents that support the [Agent Skills format](https://agentskills.io/specification): WordPress
+Eleven skills for coding agents that support the [Agent Skills format](https://agentskills.io/specification): WordPress
 VIP code review, multisite and WooCommerce migrations, checkout and Core Web Vitals audits, database and cron
-health, and two audits for AI systems. Each skill covers a task that the public skill collections did not cover, or
-covered in a line or two, when this collection was planned in September 2026.
+health, a full scan and recovery for hacked sites, and two audits for AI systems. Each skill covers a task that the
+public skill collections did not cover, or covered in a line or two, when this collection was planned in September
+2026.
 
 Every fact in a skill's `references/` folder has its source URL beside it, and every `SKILL.md` records the date
 its facts were last checked (`metadata.last_verified`).
@@ -22,6 +23,7 @@ its facts were last checked (`metadata.last_verified`).
 | [wp-autoload-audit](wp-autoload-audit/SKILL.md)                             | Measures and cleans autoloaded options with the WordPress 6.6 values, with rollback                                                        |
 | [agent-tool-call-audit](agent-tool-call-audit/SKILL.md)                     | Reviews the tool calls an agent made (a transcript or log) for scope, data exposure and irreversible steps                                 |
 | [rag-corpus-audit](rag-corpus-audit/SKILL.md)                               | Audits a knowledge base before indexing: chunk quality, duplicates, stale claims, contradictions, coverage gaps, secrets and personal data |
+| [wp-full-site-scan](wp-full-site-scan/SKILL.md)                             | Scans a hacked site from a backup and a database dump, cleans both together, restores with a rollback, finds the way in                    |
 
 ## Install a skill
 
@@ -40,7 +42,8 @@ at startup and loads the rest only when a task matches.
 ## What a skill does and does not do
 
 - A skill is instructions. Nothing runs until your agent picks the skill for a task and follows it.
-- Helper scripts are read-only and make no network requests ([SECURITY.md](SECURITY.md)).
+- Helper scripts make no network requests and change nothing they read; one writes a corrected copy of a database
+  dump to a new file you name ([SECURITY.md](SECURITY.md)).
 - Skills that touch a live site tell the agent to take a backup first, prefer a dry run, and ask you before any
   write.
 - A skill does not replace testing on a staging copy of your site. Check what the agent reports before you act.

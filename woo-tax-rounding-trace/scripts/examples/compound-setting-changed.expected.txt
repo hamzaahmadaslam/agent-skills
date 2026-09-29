@@ -1,0 +1,86 @@
+Tax trace (read-only)
+currency CAD   decimals 2   rounding precision 6   prices include tax no   tax rounding mode HALF_UP
+store setting: round at subtotal   display in cart excl   tax totals itemized   order placed through classic checkout
+
+== Cart replay, round at subtotal (store setting) ==
+values in minor units (cents) unless marked
+item 301: entered 14.97 less discount 0 -> price 1497
+  subtotal taxes rate 7 74.85, rate 8 125.748   subtotal 1497
+  total taxes rate 7 74.85, rate 8 125.748   line tax 200.598   net 1497
+item 302: entered 7.45 less discount 0 -> price 745
+  subtotal taxes rate 7 37.25, rate 8 62.58   subtotal 745
+  total taxes rate 7 37.25, rate 8 62.58   line tax 99.83   net 745
+items total 2242   item taxes rate 7 112.1, rate 8 188.328   total 2542
+cart: total 25.42   total tax 3.00   tax rows rate 7 1.12, rate 8 1.88
+Store API (minor units): total_items 2242   total_price 2542   total_tax 300
+checkout stores: total 25.42   cart_tax 3.00428   shipping_tax 0   total_tax 3.00   discount_total 0   discount_tax 0
+  item 301: _line_subtotal 14.97   _line_subtotal_tax 2.00598   _line_total 14.97   _line_tax 2.00598   _line_tax_data subtotal 7: 0.7485, 8: 1.25748 total 7: 0.7485, 8: 1.25748
+  item 302: _line_subtotal 7.45   _line_subtotal_tax 0.9983   _line_total 7.45   _line_tax 0.9983   _line_tax_data subtotal 7: 0.3725, 8: 0.6258 total 7: 0.3725, 8: 0.6258
+block checkout stores (lines copied, then calculate_totals): total 25.42   cart_tax 3.00428   shipping_tax 0   total_tax 3.00
+== Recalculation (calculate_totals), round at subtotal ==
+total 25.42   cart_tax 3.00428   shipping_tax 0   total_tax 3.00   discount_total 0.00   discount_tax 0.00
+
+== Cart replay, round per line (other setting) ==
+values in minor units (cents) unless marked
+item 301: entered 14.97 less discount 0 -> price 1497
+  subtotal taxes rate 7 74.85, rate 8 125.748   subtotal 1497
+  total taxes rate 7 74.85, rate 8 125.748   line tax 201   net 1497
+item 302: entered 7.45 less discount 0 -> price 745
+  subtotal taxes rate 7 37.25, rate 8 62.58   subtotal 745
+  total taxes rate 7 37.25, rate 8 62.58   line tax 100   net 745
+items total 2242   item taxes rate 7 112, rate 8 189   total 2543
+cart: total 25.43   total tax 3.01   tax rows rate 7 1.12, rate 8 1.89
+Store API (minor units): total_items 2242   total_price 2543   total_tax 301
+checkout stores: total 25.43   cart_tax 3.01   shipping_tax 0   total_tax 3.01   discount_total 0   discount_tax 0
+  item 301: _line_subtotal 14.97   _line_subtotal_tax 2.01   _line_total 14.97   _line_tax 2.01   _line_tax_data subtotal 7: 0.7485, 8: 1.25748 total 7: 0.7485, 8: 1.25748
+  item 302: _line_subtotal 7.45   _line_subtotal_tax 1   _line_total 7.45   _line_tax 1   _line_tax_data subtotal 7: 0.3725, 8: 0.6258 total 7: 0.3725, 8: 0.6258
+block checkout stores (lines copied, then calculate_totals): total 25.43   cart_tax 3.01   shipping_tax 0   total_tax 3.01
+== Recalculation (calculate_totals), round per line ==
+total 25.43   cart_tax 3.01   shipping_tax 0   total_tax 3.01   discount_total 0.00   discount_tax 0.00
+
+== Views of the stored order ==
+REST API: total 25.43   total_tax 3.01   sum of line totals and taxes 25.43   sum of tax_lines 3.01
+Emails (excl): Subtotal 22.42   Tax rate 7 1.12   Tax rate 8 1.89   Total 25.43   (rows add up to 25.43)
+  line rows: item 301 14.97   item 302 7.45   (sum 22.42)
+Refund form (every product line, full quantity): amount 25.42   product share of the order 25.43   remaining refundable 25.43   refund tax recorded 3.00
+Gateway: order total 2543 minor units   refund 2542 minor units
+PayPal Standard: line items add up to 25.43 against total 25.43 -> itemised
+
+== Stored against computed (store setting, classic checkout) ==
+stage                      value                                    stored           computed         diff
+0 cart page                total shown at checkout                  25.43            25.42            0.01   cart replay against the stored order total
+0 cart page                total tax shown at checkout              3.01             3                0.01   the cart rounds shipping and fee tax apart from item tax
+1 line tax (unrounded)     item 301 rate 7                          0.7485           0.7485           ok
+1 line tax (unrounded)     item 301 rate 8                          1.25748          1.25748          ok
+2 line tax (rounded)       item 301 _line_tax                       2.01             2.00598          0.00402
+3 line net                 item 301 _line_total                     14.97            14.97            ok
+3 line net                 item 301 _line_subtotal                  14.97            14.97            ok
+1 line tax (unrounded)     item 302 rate 7                          0.3725           0.3725           ok
+1 line tax (unrounded)     item 302 rate 8                          0.6258           0.6258           ok
+2 line tax (rounded)       item 302 _line_tax                       1                0.9983           0.0017
+3 line net                 item 302 _line_total                     7.45             7.45             ok
+3 line net                 item 302 _line_subtotal                  7.45             7.45             ok
+4 tax lines                rate 7 tax_amount                        1.12             1.121            -0.001
+4 tax lines                rate 7 shipping_tax_amount               0                0                ok
+4 tax lines                rate 8 tax_amount                        1.89             1.88328          0.00672
+4 tax lines                rate 8 shipping_tax_amount               0                0                ok
+5 stored sums              cart_tax against item and fee _line_tax  3.01             3.01             ok   both stored
+5 order totals             cart_tax                                 3.01             3.00428          0.00572
+5 order totals             shipping_tax                             0                0                ok
+5 order totals             total_tax                                3.01             3                0.01
+5 order totals             discount_total                           0                0                ok
+5 order totals             discount_tax                             0                0                ok
+6 order total              total (classic checkout)                 25.43            25.42            0.01
+7 recalculation            total after Recalculate                  25.43            25.42            0.01   what WC_Abstract_Order::calculate_totals() would store
+7 recalculation            total_tax after Recalculate              3.01             3                0.01
+8 REST API                 sum of line totals and line taxes        25.43            25.43            ok   REST shows each line rounded on its own
+8 REST API                 sum of tax_lines                         3.01             3.01             ok
+9 emails                   sum of total rows (excl)                 25.43            25.43            ok
+10 refund form             full refund amount                       25.43            25.42            0.01
+11 observed                gateway_amount_minor                     2543             2543             ok   value seen elsewhere, against the computed view
+
+Checkout stages 0 to 6: 9 of 22 values differ under the store setting (round at subtotal), 0 under the other setting (round per line).
+First divergence: stage 0 cart page, total shown at checkout (stored 25.43, computed 25.42).
+
+== Half-way values (0) ==
+none

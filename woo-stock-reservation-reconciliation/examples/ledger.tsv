@@ -1,0 +1,6 @@
+product_id	parent_id	product_type	sku	stock	stock_status	live_held	available_to_shoppers	reduced_processing	reduced_on_hold
+101	0	product	EX-MUG-01	5.0000	instock	5	0	2.0000	0.0000
+102	0	product	EX-TEE-02	12.0000	instock	1	11	3.0000	1.0000
+205	204	product_variation	EX-HAT-RED	0.0000	outofstock	0	0	0.0000	0.0000
+206	204	product_variation	EX-HAT-BLUE	4.0000	instock	0	4	1.0000	0.0000
+310	0	product	NULL	-1.0000	onbackorder	0	-1	0.0000	0.0000

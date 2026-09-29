@@ -1,0 +1,68 @@
+{
+  "synthetic": "Synthetic order, not from any store. Prices entered with 20% tax, a 25% coupon, 10 units at 11.90. Stored values are the ones WooCommerce 11.1.2 checkout writes for this cart, as computed by tax-trace.mjs.",
+  "currency": "GBP",
+  "settings": {
+    "woocommerce_prices_include_tax": "yes",
+    "woocommerce_tax_round_at_subtotal": "no",
+    "woocommerce_price_num_decimals": 2,
+    "woocommerce_tax_display_cart": "incl",
+    "woocommerce_tax_total_display": "itemized",
+    "checkout": "classic"
+  },
+  "rates": {
+    "1": {
+      "rate": "20.0000",
+      "compound": "no",
+      "priority": 1,
+      "label": "VAT"
+    }
+  },
+  "items": [
+    {
+      "id": 101,
+      "qty": 10,
+      "tax_rate_ids": [
+        1
+      ],
+      "entered_line_price": "119.00",
+      "entered_line_discount": "29.75",
+      "stored": {
+        "subtotal": "99.166667",
+        "subtotal_tax": "19.83",
+        "total": "74.375",
+        "total_tax": "14.87",
+        "taxes": {
+          "total": {
+            "1": "14.875"
+          },
+          "subtotal": {
+            "1": "19.833333"
+          }
+        }
+      }
+    }
+  ],
+  "shipping": [],
+  "fees": [],
+  "order": {
+    "stored": {
+      "total": "89.25",
+      "cart_tax": "14.87",
+      "shipping_tax": "0",
+      "total_tax": "14.87",
+      "discount_total": "24.791667",
+      "discount_tax": "4.958333",
+      "shipping_total": "0"
+    }
+  },
+  "tax_lines": [
+    {
+      "rate_id": 1,
+      "tax_amount": "14.87",
+      "shipping_tax_amount": "0"
+    }
+  ],
+  "observed": {
+    "gateway_amount_minor": 8925
+  }
+}

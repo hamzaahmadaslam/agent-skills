@@ -1,0 +1,21 @@
+Stock reservation ledger (read-only)
+ledger rows: 5   products with live holds: 2   live held units: 6
+unshipped statuses used: processing, on-hold
+
+== Products whose live holds cover all of _stock ==
+ product_id  sku                       stock  live_held  stock_status
+        101  EX-MUG-01                     5          5  instock
+
+== Products with _stock below zero (backorders, or reductions without stock) ==
+        310  -                            -1
+
+== Count against _stock ==
+count lines: 5   matched: 4   matching: 2   differing: 2   unmatched: 1   ledger rows not counted: 1
+ product_id  sku                    counted  unshipped  expected  stock_now  difference  live_held
+        102  EX-TEE-02                   14          4        10         12           2          1
+        206  EX-HAT-BLUE                  6          1         5          4          -1          0
+count line 5, product_id 999: not in the ledger (not stock-managed, trashed, or stock managed by the parent)
+
+difference = stock_now - expected. Positive: _stock is higher than the shelf supports (oversell risk).
+Negative: _stock is lower than the shelf (lost sales). Each correction is change 5 in
+references/changes-and-rollback.md, one product at a time, with the owner's approval. Nothing was changed.

@@ -1,10 +1,11 @@
 # Agent skills
 
-Eleven skills for coding agents that support the [Agent Skills format](https://agentskills.io/specification): WordPress
-VIP code review, multisite and WooCommerce migrations, checkout and Core Web Vitals audits, database and cron
-health, a full scan and recovery for hacked sites, and two audits for AI systems. Each skill covers a task that the
-public skill collections did not cover, or covered in a line or two, when this collection was planned in September
-2026.
+Sixteen skills for coding agents that support the [Agent Skills format](https://agentskills.io/specification):
+WordPress VIP code review, multisite and WooCommerce migrations, checkout and Core Web Vitals audits, database and
+cron health, a full scan and recovery for hacked sites, two audits for AI systems, four WooCommerce investigations
+(held stock, scheduled sales, product lookup tables, one order's tax) and database collation drift. Each skill covers
+a task that the public skill collections did not cover, or covered in a line or two, when this collection was planned
+in September 2026.
 
 Every fact in a skill's `references/` folder has its source URL beside it, and every `SKILL.md` records the date
 its facts were last checked (`metadata.last_verified`).
@@ -24,6 +25,11 @@ its facts were last checked (`metadata.last_verified`).
 | [agent-tool-call-audit](agent-tool-call-audit/SKILL.md)                     | Reviews the tool calls an agent made (a transcript or log) for scope, data exposure and irreversible steps                                 |
 | [rag-corpus-audit](rag-corpus-audit/SKILL.md)                               | Audits a knowledge base before indexing: chunk quality, duplicates, stale claims, contradictions, coverage gaps, secrets and personal data |
 | [wp-full-site-scan](wp-full-site-scan/SKILL.md)                             | Scans a hacked site from a backup and a database dump, cleans both together, restores with a rollback, finds the way in                    |
+| [woo-stock-reservation-reconciliation](woo-stock-reservation-reconciliation/SKILL.md) | Explains why WooCommerce holds units back (reservations, unpaid orders) and reconciles stock with the shelf without overselling            |
+| [woo-scheduled-sale-state-audit](woo-scheduled-sale-state-audit/SKILL.md)   | Finds why a scheduled sale starts, ends or shows at the wrong time, or why `_price` disagrees with the sale window                         |
+| [woo-product-lookup-integrity](woo-product-lookup-integrity/SKILL.md)       | Checks the product lookup tables row by row against the products, before and after a regeneration                                          |
+| [woo-tax-rounding-trace](woo-tax-rounding-trace/SKILL.md)                   | Rebuilds one order's tax to the cent and finds where the cart, the order, a refund and the gateway start to differ                         |
+| [wp-database-collation-drift](wp-database-collation-drift/SKILL.md)         | Goes from an "Illegal mix of collations" error to the columns involved and the narrowest conversion, with a rollback                       |
 
 ## Install a skill
 

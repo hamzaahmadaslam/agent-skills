@@ -1,0 +1,108 @@
+{
+  "synthetic": "Synthetic order, not from any store. Prices entered without tax, a 5% rate and an 8% compound rate. The order was placed while the store rounded per line; the store has since switched to rounding at subtotal, which is the setting below. Stored values are the ones WooCommerce 11.1.2 checkout writes when rounding per line, as computed by tax-trace.mjs.",
+  "currency": "CAD",
+  "settings": {
+    "woocommerce_prices_include_tax": "no",
+    "woocommerce_tax_round_at_subtotal": "yes",
+    "woocommerce_price_num_decimals": 2,
+    "woocommerce_tax_display_cart": "excl",
+    "woocommerce_tax_total_display": "itemized",
+    "checkout": "classic"
+  },
+  "rates": {
+    "7": {
+      "rate": "5.0000",
+      "compound": "no",
+      "priority": 1,
+      "label": "Rate A"
+    },
+    "8": {
+      "rate": "8.0000",
+      "compound": "yes",
+      "priority": 2,
+      "label": "Rate B (compound)"
+    }
+  },
+  "items": [
+    {
+      "id": 301,
+      "qty": 3,
+      "tax_rate_ids": [
+        7,
+        8
+      ],
+      "entered_line_price": "14.97",
+      "entered_line_discount": "0",
+      "stored": {
+        "subtotal": "14.97",
+        "subtotal_tax": "2.01",
+        "total": "14.97",
+        "total_tax": "2.01",
+        "taxes": {
+          "total": {
+            "7": "0.7485",
+            "8": "1.25748"
+          },
+          "subtotal": {
+            "7": "0.7485",
+            "8": "1.25748"
+          }
+        }
+      }
+    },
+    {
+      "id": 302,
+      "qty": 1,
+      "tax_rate_ids": [
+        7,
+        8
+      ],
+      "entered_line_price": "7.45",
+      "entered_line_discount": "0",
+      "stored": {
+        "subtotal": "7.45",
+        "subtotal_tax": "1",
+        "total": "7.45",
+        "total_tax": "1",
+        "taxes": {
+          "total": {
+            "7": "0.3725",
+            "8": "0.6258"
+          },
+          "subtotal": {
+            "7": "0.3725",
+            "8": "0.6258"
+          }
+        }
+      }
+    }
+  ],
+  "shipping": [],
+  "fees": [],
+  "order": {
+    "stored": {
+      "total": "25.43",
+      "cart_tax": "3.01",
+      "shipping_tax": "0",
+      "total_tax": "3.01",
+      "discount_total": "0",
+      "discount_tax": "0",
+      "shipping_total": "0"
+    }
+  },
+  "tax_lines": [
+    {
+      "rate_id": 7,
+      "tax_amount": "1.12",
+      "shipping_tax_amount": "0"
+    },
+    {
+      "rate_id": 8,
+      "tax_amount": "1.89",
+      "shipping_tax_amount": "0"
+    }
+  ],
+  "observed": {
+    "gateway_amount_minor": 2543
+  }
+}

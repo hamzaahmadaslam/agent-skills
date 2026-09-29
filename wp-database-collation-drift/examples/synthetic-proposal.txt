@@ -1,0 +1,91 @@
+-- Proposed statements for review. Nothing has been run. Each change needs the owner's approval, a tested
+-- backup, and a run on staging first (references/changes-and-rollback.md).
+-- Source file: examples/synthetic-tables.sql; tables in file: 3; tables proposed: 3; server: mysql
+
+-- wp_posts: already on utf8mb4_unicode_520_ci for the columns in scope; nothing to propose.
+
+-- ==== wp_example_log ====
+-- Now: engine innodb, default utf8mb3 / utf8mb3_general_ci, row format compact
+-- Target: utf8mb4 / utf8mb4_unicode_520_ci; scope: whole table
+-- Columns to change: 3
+--   object_type varchar(50): utf8mb3_general_ci -> utf8mb4_unicode_520_ci
+--   object_name varchar(255): utf8mb3_general_ci -> utf8mb4_unicode_520_ci
+--   message text: utf8mb3_general_ci -> utf8mb4_unicode_520_ci
+-- Keys that hold a changed column, bytes per key part after the change:
+--   KEY object_name: object_name 1020 bytes OVER THE LIMIT (limit 767: InnoDB COMPACT key prefix limit)
+--   KEY type_name: object_type 200 bytes, object_name(100) 400 bytes (limit 767: InnoDB COMPACT key prefix limit)
+-- WARNING: KEY object_name goes over the 767-byte InnoDB COMPACT key prefix limit; the change below re-creates it with a prefix of 191 characters, as WordPress did for its own keys in 4.2 (references/fixes.md)
+
+-- 1. Read-only checks before the change (staging first; the collision checks read the whole table):
+SELECT COLUMN_NAME, COLUMN_TYPE, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_log' AND COLLATION_NAME IS NOT NULL ORDER BY ORDINAL_POSITION;
+SELECT TABLE_ROWS AS approx_rows, ROUND((DATA_LENGTH + INDEX_LENGTH) / 1048576, 1) AS size_mb FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_log';
+
+-- 2. Backup of this table, outside the web root, restore tested on staging (references/changes-and-rollback.md):
+--    wp db export /path/outside/webroot/wp_example_log-before.sql --tables=wp_example_log --single-transaction --add-drop-table --default-character-set=utf8mb4
+--    COLLATION_REPORT_DDL_TABLES=wp_example_log bash scripts/collation-report.sh --path=... > wp_example_log-definition.sql
+
+-- 3. The change, after the owner approves it (the table is rebuilt; writes wait while it copies):
+SET SESSION lock_wait_timeout = 5;
+ALTER TABLE `wp_example_log`
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
+  MODIFY COLUMN `object_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT '',
+  MODIFY COLUMN `object_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT '',
+  MODIFY COLUMN `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
+  DROP INDEX `object_name`, ADD KEY `object_name` (`object_name`(191)),
+  ALGORITHM=COPY, LOCK=SHARED;
+
+-- 4. Checks after the change:
+SELECT COLUMN_NAME, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_log' AND COLLATION_NAME IS NOT NULL AND COLLATION_NAME <> 'utf8mb4_unicode_520_ci';
+SELECT TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_log';
+--    Then run the statement that failed, through WordPress (references/finding-the-query.md), and compare row counts with step 1.
+
+-- 5. Rollback: restores the saved definitions. If rows written after the change hold characters the old character
+--    set cannot store, this loses them or fails; restore the table from the step 2 backup instead.
+SET SESSION lock_wait_timeout = 5;
+ALTER TABLE `wp_example_log`
+  DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci,
+  MODIFY COLUMN `object_type` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL DEFAULT '',
+  MODIFY COLUMN `object_name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL DEFAULT '',
+  MODIFY COLUMN `message` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci,
+  DROP INDEX `object_name`, ADD KEY `object_name` (`object_name`),
+  ALGORITHM=COPY, LOCK=SHARED;
+
+-- ==== wp_example_lookup ====
+-- Now: engine innodb, default utf8mb4 / utf8mb4_0900_ai_ci, row format dynamic (assumed)
+-- Target: utf8mb4 / utf8mb4_unicode_520_ci; scope: whole table
+-- Columns to change: 2
+--   post_name varchar(200): utf8mb4_0900_ai_ci -> utf8mb4_unicode_520_ci
+--   label varchar(191): utf8mb4_0900_ai_ci -> utf8mb4_unicode_520_ci
+-- Keys that hold a changed column, bytes per key part after the change:
+--   UNIQUE KEY post_name: post_name(191) 764 bytes (limit 3072: InnoDB DYNAMIC key prefix limit, row format assumed)
+
+-- 1. Read-only checks before the change (staging first; the collision checks read the whole table):
+SELECT COLUMN_NAME, COLUMN_TYPE, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_lookup' AND COLLATION_NAME IS NOT NULL ORDER BY ORDINAL_POSITION;
+SELECT TABLE_ROWS AS approx_rows, ROUND((DATA_LENGTH + INDEX_LENGTH) / 1048576, 1) AS size_mb FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_lookup';
+SELECT COUNT(*) AS post_name_values_that_would_collide FROM (SELECT 1 FROM `wp_example_lookup` WHERE `post_name` IS NOT NULL GROUP BY CONVERT(LEFT(`post_name`, 191) USING utf8mb4) COLLATE utf8mb4_unicode_520_ci HAVING COUNT(*) > 1) AS d;
+
+-- 2. Backup of this table, outside the web root, restore tested on staging (references/changes-and-rollback.md):
+--    wp db export /path/outside/webroot/wp_example_lookup-before.sql --tables=wp_example_lookup --single-transaction --add-drop-table --default-character-set=utf8mb4
+--    COLLATION_REPORT_DDL_TABLES=wp_example_lookup bash scripts/collation-report.sh --path=... > wp_example_lookup-definition.sql
+
+-- 3. The change, after the owner approves it (the table is rebuilt; writes wait while it copies):
+SET SESSION lock_wait_timeout = 5;
+ALTER TABLE `wp_example_lookup`
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
+  MODIFY COLUMN `post_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT '',
+  MODIFY COLUMN `label` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  ALGORITHM=COPY, LOCK=SHARED;
+
+-- 4. Checks after the change:
+SELECT COLUMN_NAME, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_lookup' AND COLLATION_NAME IS NOT NULL AND COLLATION_NAME <> 'utf8mb4_unicode_520_ci';
+SELECT TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wp_example_lookup';
+--    Then run the statement that failed, through WordPress (references/finding-the-query.md), and compare row counts with step 1.
+
+-- 5. Rollback: restores the saved definitions. If rows written after the change hold characters the old character
+--    set cannot store, this loses them or fails; restore the table from the step 2 backup instead.
+SET SESSION lock_wait_timeout = 5;
+ALTER TABLE `wp_example_lookup`
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+  MODIFY COLUMN `post_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',
+  MODIFY COLUMN `label` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  ALGORITHM=COPY, LOCK=SHARED;

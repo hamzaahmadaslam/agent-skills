@@ -1,0 +1,62 @@
+Audit time: 2026-11-15 12:00:00 UTC = 2026-11-15 07:00:00 site time (America/New_York)
+Rows read: 10. Shown: 10.
+Verdicts: OK 7, STALE_SALE_PRICE 1, STALE_REGULAR_PRICE 1, DERIVED 1
+
+#101 simple: OK
+  regular 50 | sale 40 | stored _price 40 | expected 40 | window open
+  from 2026-11-10 00:00:00 site time (2026-11-10 05:00:00 UTC)
+  to   2026-11-30 23:59:59 site time (2026-12-01 04:59:59 UTC)
+  - Ends in 15d 16h.
+
+#102 simple: STALE_SALE_PRICE
+  regular 80 | sale 60 | stored _price 60 | expected 80 | window ended
+  from 2026-10-01 00:00:00 site time (2026-10-01 04:00:00 UTC)
+  to   2026-10-31 23:59:59 site time (2026-11-01 03:59:59 UTC)
+  - Sale price stored while the window is closed: the end (or a start before its time) was applied wrongly or not undone.
+
+#103 simple: STALE_REGULAR_PRICE
+  regular 30 | sale 25 | stored _price 30 | expected 25 | window open
+  from 2026-11-14 00:00:00 site time (2026-11-14 05:00:00 UTC)
+  to   2026-12-01 23:59:59 site time (2026-12-02 04:59:59 UTC)
+  - Regular price stored while the window is open: the start was not applied.
+  - Ends in 16d 16h.
+
+#104 simple: OK
+  regular 100 | sale 80 | stored _price 100 | expected 100 | window ended
+  from 2026-09-01 00:00:00 site time (2026-09-01 04:00:00 UTC)
+  to   2026-09-30 23:59:59 site time (2026-10-01 03:59:59 UTC)
+  - Completed sale that the 10.5.0 to 11.1.x daily query still selects as starting: reprocessed on every daily run (issue 66720; the fix is merged for 11.2.0 and is not in 11.1.2).
+
+#105 simple: OK
+  regular 20 | sale - | stored _price 20 | expected 20 | window no sale price
+  from 2026-11-01 00:00:00 site time (2026-11-01 04:00:00 UTC)
+  - Start date with an empty or 0 sale price: selected by the daily query on every run and never settled (issue 67995, open).
+
+#106 variation (parent 200): OK
+  regular 15 | sale 12 | stored _price 12 | expected 12 | window open
+  from 2026-11-01 00:00:00 site time (2026-11-01 04:00:00 UTC)
+  to   2026-11-30 23:59:59 site time (2026-12-01 04:59:59 UTC)
+  - Ends in 15d 16h.
+
+#107 simple: OK
+  regular 40 | sale 35 | stored _price 35 | expected 35 | window open
+  from 2026-11-05 00:00:00 site time (2026-11-05 05:00:00 UTC)
+  to   2026-11-30 00:00:00 site time (2026-11-30 05:00:00 UTC)
+  - Ends at 00:00:00 site time: the shape a date-only CSV import value gives; the product editor stores 23:59:59 (timezones-and-dates.md).
+  - Ends in 14d 17h.
+
+#108 simple: OK
+  regular 10 | sale 12 | stored _price 10 | expected 10 | window sale price not below regular
+  from 2026-11-01 00:00:00 site time (2026-11-01 04:00:00 UTC)
+  - Sale price is not below the regular price, so is_on_sale() is false; a CRUD save that changes either price clears the sale price.
+
+#109 external: OK
+  regular 70 | sale 49 | stored _price 70 | expected 70 | window not started
+  from 2026-12-20 00:00:00 site time (2026-12-20 05:00:00 UTC)
+  to   2026-12-26 23:59:59 site time (2026-12-27 04:59:59 UTC)
+  - Starts in 34d 17h.
+
+#200 variable: DERIVED
+  regular - | sale - | stored _price 12 | expected - | window not applicable
+  - Parent price is derived from its children: compare its _price rows with the children (variable-products.md).
+  - 2 _price row(s) stored on the parent.

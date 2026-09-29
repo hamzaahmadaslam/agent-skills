@@ -55,6 +55,11 @@ first:
 | `wp-autoload-audit`               | Autoload values and thresholds in the current WordPress release                                                                                                                                               |
 | `agent-tool-call-audit`           | The MCP specification's tool annotations and the transcript formats covered                                                                                                                                   |
 | `rag-corpus-audit`                | The chunking and retrieval guidance cited in its references                                                                                                                                                   |
+| `woo-stock-reservation-reconciliation` | The `ReserveStock` query and the cancel action's conditions in the current WooCommerce release; the state of PRs 67471, 68963 and 67446                                                                       |
+| `woo-scheduled-sale-state-audit`  | The per-product sale events and the daily `woocommerce_scheduled_sales` action; PR 67958 (11.2.0), PR 68016 and the Bulk Edit sale-date bug (issue 66696)                                                     |
+| `woo-product-lookup-integrity`    | The lookup data stores and `wp wc palt` commands in the current release (the optimized path, `--disable-db-optimization`); PR 68482 (disabled variations) and issues 68112 and 68605                          |
+| `woo-tax-rounding-trace`          | `WC_Cart_Totals` and the order's `calculate_totals()` and `calculate_taxes()` in the current release; the rounding settings and constants; the gateways' amount handling                                      |
+| `wp-database-collation-drift`     | MariaDB's default collation and its `_0900_` aliases; the MySQL manual on collations and `ALTER TABLE` algorithms; `wpdb` charset handling in the current WordPress release                                   |
 
 ## The link check
 

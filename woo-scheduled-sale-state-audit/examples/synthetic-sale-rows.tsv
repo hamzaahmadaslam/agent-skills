@@ -1,0 +1,12 @@
+# Synthetic rows for explain-sale-state.mjs, made up for the example: no real store. Site timezone America/New_York.
+id	post_type	product_type	parent_id	regular_price	sale_price	price	price_rows	date_from	date_to
+101	product	simple	0	50	40	40	1	1794286800	1796101199
+102	product	simple	0	80	60	60	1	1790827200	1793505599
+103	product	simple	0	30	25	30	1	1794632400	1796187599
+104	product	simple	0	100	80	100	1	1788235200	1790827199
+105	product	simple	0	20		20	1	1793505600	
+106	product_variation		200	15	12	12	1	1793505600	1796101199
+107	product	simple	0	40	35	35	1	1793854800	1796014800
+108	product	simple	0	10	12	10	1	1793505600	
+109	product	external	0	70	49	70	1	1797742800	1798347599
+200	product	variable	0			12	2		

@@ -3,3 +3,6 @@
 
 # dev.mysql.com answers the checker with 403.
 ^https://dev\.mysql\.com/
+
+# www.npmjs.com answers the checker with 403 (the package pages exist: registry.npmjs.org returns them).
+^https://www\.npmjs\.com/
